@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 from flask import Flask
-from .data_definitions import ErrorResponse
+from data_definitions import ErrorResponse
 from flask import request, Response
 from dotenv import load_dotenv, find_dotenv
 import os
 from flask import session, redirect
 from dataclasses import asdict
-app = Flask(__name__)
+from flask import render_template
 
+app = Flask(__name__)
 load_dotenv(find_dotenv())
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -20,9 +21,10 @@ MIMETYPE = "application/json"
 def export_design():
     """This is the root of the webservice, upon successful authentication a text will be displayed in the browser"""
     try:
-        projectid = request.args.get("projectid")
+        project_id = request.args.get("projectid")
         apitoken = request.args.get("apitoken")
-        diagramid = request.args.get("diagramid")
+        design_team_id = request.args.get("cteamid")
+        design_id = request.args.get("synthesisid")
 
     except KeyError:
         error_msg = ErrorResponse(
@@ -31,8 +33,9 @@ def export_design():
             code=400,
         )
                 
-    return Response(asdict(error_msg), status=400, mimetype=MIMETYPE)
+        return Response(asdict(error_msg), status=400, mimetype=MIMETYPE)
 
+    return render_template("export.html", data={})
 
 
 @app.context_processor
