@@ -1,6 +1,19 @@
 from dataclasses import dataclass
 from typing import List
 from geojson import FeatureCollection
+from enum import Enum
+
+
+
+def custom_asdict_factory(data):
+
+    def convert_value(obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        return obj
+
+    return dict((k, convert_value(v)) for k, v in data)
+
 
 @dataclass
 class ErrorResponse:
@@ -8,6 +21,16 @@ class ErrorResponse:
     message: str
     code: int
     status: int
+
+class MessageType(str, Enum):
+    primary = "primary"
+    secondary = "secondary"
+    success = "success"
+    danger = "danger"
+    warning = "warning"
+    info = "info"
+    light = "light"
+    dark = "dark"
 
 @dataclass
 class GeodesignhubFeatureProperties:
@@ -26,6 +49,16 @@ class VolumeInformation:
     max_height: float
 
 
+@dataclass
+class ExportConfirmationPayload:
+    agol_token: str
+    agol_project_id: str
+    message: str
+    message_type:MessageType
+    geodesignhub_design_feature_count: int
+    geodesignhub_design_name: str
+    session_id: str
+
 
 @dataclass
 class GeodesignhubDesignFeatureProperties:
@@ -40,11 +73,11 @@ class GeodesignhubDesignFeatureProperties:
     volume_information: VolumeInformation
     tag_codes: str
 
+
 @dataclass
 class GeodesignhubDiagramGeoJSON:
     # Source: https://www.geodesignhub.com/api/#diagrams-api-diagram-detail-get
     geojson: FeatureCollection
-
 
 
 @dataclass
@@ -87,6 +120,7 @@ class GeodesignhubProjectTag:
     code: str
     diagrams: List[int]
 
+
 @dataclass
 class GeodesignhubProjectTags:
 
@@ -105,4 +139,3 @@ class GeodesignhubProjectData:
     bounds: GeodesignhubProjectBounds
     center: GeodesignhubProjectCenter
     tags: GeodesignhubProjectTags
-

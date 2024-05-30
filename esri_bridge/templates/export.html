@@ -1,0 +1,34 @@
+{% extends "layout.html" %} {% block body %}
+<div class="container">
+    <!-- Example row of columns -->
+    <div class="row">
+        <div class="p-4"></div>
+        <div class="col-md-12">
+            <h4>Geodesignhub → ESRI Data Export
+            <small class="text-muted">Export design data to ArcGIS Online</small></h4>
+            <br>
+            {% if data.message %}
+            <div class="mb-3">
+              <div class="alert alert-{{data.message_type}}" role="alert">
+                {{data.message}}
+              </div>
+            </div>
+            {% endif %}
+            <br>
+            <h5>Ready to export {{data.geodesignhub_design_name}}...</h5>
+            <p>Please confirm that you want to export the design with <b>{{data.geodesignhub_design_feature_count}}</b> diagrams to ArcGIS Online. </p>
+            <form id='projform' class='form-group' action="/" method="post">
+              <input type="hidden" name="agol_token" value = {{data.agol_token}}>
+              <input type="hidden" value = {{data.agol_token}}>
+              <button type="submit" class="btn btn-primary">Migrate Data</button>
+            </form>
+         
+        </div>
+    </div>
+
+</div>
+<!-- /container -->{% endblock %} 
+
+{% block footer %} 
+
+{% endblock %}
