@@ -82,6 +82,8 @@ class GeodesignhubDesignGeoJSON:
 class GeodesignhubDataStorage: 
     design_geojson: GeodesignhubDesignGeoJSON
     design_id: str
+    design_team_id: str
+    project_id: str
     design_name: str
 
 @dataclass
