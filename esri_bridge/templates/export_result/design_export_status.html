@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block headercss %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+
+{% endblock %}
+{% block body %}
+<div class="container">
+    <!-- Example row of columns -->    
+    <br>
+    <div class="row">
+        <div class="col-md-12">                   
+            <div class="alert {% if op %}alert-success{% else %}alert-warning {% endif %}" role="alert">
+                <p>{{message}}</p>
+            </div>
+        </div>
+    </div>       
+</div><!-- /container -->
+{% endblock %}
+

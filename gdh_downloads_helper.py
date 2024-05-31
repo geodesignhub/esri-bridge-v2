@@ -14,17 +14,18 @@ from data_definitions import (
     UploadSuccessResponse,
 )
 import utils
-from shapely.geometry import  shape
+from shapely.geometry import shape
 import json
 from dataclasses import asdict
 from dacite import from_dict
-from typing import List,  Union
+from typing import List, Union
 from geojson import Feature, FeatureCollection, Polygon, LineString, Point
 import GeodesignHub, config
 from dataclasses import asdict
 
 from uuid import uuid4
 import uuid
+
 
 class GeodesignhubDataDownloader:
     """

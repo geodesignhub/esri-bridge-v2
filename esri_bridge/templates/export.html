@@ -17,11 +17,7 @@
             <br>
             <h5>Ready to export {{data.geodesignhub_design_name}}...</h5>
             <p>Please confirm that you want to export the design with <b>{{data.geodesignhub_design_feature_count}}</b> diagrams to ArcGIS Online. </p>
-            <form id='projform' class='form-group' action="/" method="post">
-              <input type="hidden" name="agol_token" value = {{data.agol_token}}>
-              <input type="hidden" value = {{data.agol_token}}>
-              <button type="submit" class="btn btn-primary">Migrate Data</button>
-            </form>
+            {{ render_form(form) }}
          
         </div>
     </div>

@@ -75,10 +75,14 @@ class GeodesignhubDesignFeatureProperties:
 
 
 @dataclass
-class GeodesignhubDiagramGeoJSON:
-    # Source: https://www.geodesignhub.com/api/#diagrams-api-diagram-detail-get
+class GeodesignhubDesignGeoJSON:
     geojson: FeatureCollection
 
+@dataclass
+class GeodesignhubDataStorage: 
+    design_geojson: GeodesignhubDesignGeoJSON
+    design_id: str
+    design_name: str
 
 @dataclass
 class GeodesignhubSystem:

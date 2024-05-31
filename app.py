@@ -1,15 +1,28 @@
 #!/usr/bin/env python3
 from flask import Flask
-from data_definitions import ErrorResponse, ExportConfirmationPayload, MessageType, custom_asdict_factory
+from data_definitions import (
+    ErrorResponse,
+    ExportConfirmationPayload,
+    MessageType,
+    custom_asdict_factory,
+    GeodesignhubDiagramGeoJSON,
+    GeodesignhubDataStorage
+)
+from dacite import from_dict
 from flask import request, Response
 from dotenv import load_dotenv, find_dotenv
 import os
-from flask import session, redirect
+from flask import session, redirect, url_for
 from dataclasses import asdict
 from flask import render_template
 from esri_bridge import create_app
 import uuid
-
+from gdh_downloads_helper import GeodesignhubDataDownloader
+import json
+from conn import get_redis
+import geojson
+from flask_wtf import FlaskForm, CSRFProtect
+from flask_bootstrap import Bootstrap5
 
 app = Flask(__name__)
 load_dotenv(find_dotenv())
@@ -17,6 +30,10 @@ ENV_FILE = find_dotenv()
 if ENV_FILE:
     load_dotenv(ENV_FILE)
 base_dir = os.path.abspath(os.path.dirname(__file__))
+r = get_redis()
+
+csrf = CSRFProtect(app)
+bootstrap = Bootstrap5(app)
 
 MIMETYPE = "application/json"
 
@@ -39,6 +56,12 @@ app.config["BABEL_TRANSLATION_DIRECTORIES"] = os.path.join(base_dir, "translatio
 babel.init_app(app, locale_selector=get_locale)
 
 
+class ExportConfirmationForm(FlaskForm):    
+    agol_token = HiddenField()
+    agol_project_id = HiddenField()
+    session_id = HiddenField()
+    submit = SubmitField()
+
 @app.route("/export/", methods=["GET"])
 def export_design():
     """This is the root of the webservice, upon successful authentication a text will be displayed in the browser"""
@@ -58,9 +81,58 @@ def export_design():
         )
 
         return Response(asdict(error_msg), status=400, mimetype=MIMETYPE)
-    # Download Design from Geodesignhub
-    # Cache it
+
+    export_confirmation_form = ExportConfirmationForm(
+        project_id=project_id, agol_token=agol_token, agol_project_id=agol_project_id
+    )
+
+    if export_confirmation_form.validate_on_submit():
+        diagram_upload_form_data = export_confirmation_form.data
+        agol_token = diagram_upload_form_data["agol_token"]
+        agol_project_id = diagram_upload_form_data["agol_project_id"]
+        session_id = diagram_upload_form_data["session_id"]
+        session_key = session_id + '_design'
+        design_details_str = r.get(session_key)
+        _design_details = json.loads(design_details_str.decode("utf-8"))
+        design_details =  from_dict(
+        data_class=GeodesignhubDataStorage,
+        data=_design_details,
+        )
+
+        return redirect(
+            url_for(
+                "export_result",
+                agol_token=agol_token,
+                agol_project_id=agol_project_id,
+                status=upload_response_dict["status"],
+                code=307,
+            )
+        )
+
+
+
     session_id = uuid.uuid4()
+
+    my_geodesignhub_downloader = GeodesignhubDataDownloader(
+        session_id=session_id,
+        project_id=project_id,
+        synthesis_id=design_id,
+        cteam_id=design_team_id,
+        apitoken=apitoken,
+    )
+
+    _design_feature_collection = (
+        my_geodesignhub_downloader.download_design_data_from_geodesignhub()
+    )
+    gj_serialized = json.loads(geojson.dumps(_design_feature_collection))
+    design_geojson = GeodesignhubDiagramGeoJSON(geojson=gj_serialized)
+    gdh_data_for_storage = GeodesignhubDataStorage(design_geojson = design_geojson, design_id = design_id, design_team_id = design_team_id, project_id = project_id)
+    session_key = str(session_id) + "_design"
+
+    r.set(session_key, json.dumps(asdict(gdh_data_for_storage)))
+    r.expire(session_key, time=60000)
+
+    # Cache it
     confirmation_message = "Ready for migration"
     message_type = MessageType.success
     export_confirmation_payload = ExportConfirmationPayload(
@@ -73,8 +145,31 @@ def export_design():
         session_id=session_id,
     )
 
-    return render_template("export.html", data=asdict(export_confirmation_payload, dict_factory= custom_asdict_factory))
+    return render_template(
+        "export.html",
+        data=asdict(export_confirmation_payload, dict_factory=custom_asdict_factory),
+        form=export_confirmation_form,
+    )
 
+
+@app.route("/export_result/", methods=["GET"])
+def redirect_after_export():
+
+    status = int(request.args.get("status"))
+    agol_token = request.args["agol_token"]
+    agol_project_id = request.args["agol_project_id"]
+    message = (
+        "Design Successfully exported to ArcGIS Online"
+        if status
+        else "Error in exporting the design, please contact your administrator"
+    )
+    return render_template(
+        "export_result/design_export_status.html",
+        op=status,
+        message=message,
+        agol_token=agol_token,
+        agol_project_id=agol_project_id,
+    )
 
 @app.context_processor
 def inject_conf_var():
