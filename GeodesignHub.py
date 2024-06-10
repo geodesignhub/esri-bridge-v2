@@ -1,7 +1,7 @@
 import requests
 import json
 
-# Version: 1.3.6
+# Version: 1.3.7
 
 
 class GeodesignHubClient:
@@ -38,7 +38,9 @@ class GeodesignHubClient:
 
     def get_project_center(self):
         """This method gets the center as lat,lng for a particular project."""
-        sec_url = self.sec_url + "projects" + "/" + self.project_id + "/" + "center" + "/"
+        sec_url = (
+            self.sec_url + "projects" + "/" + self.project_id + "/" + "center" + "/"
+        )
         headers = {"Authorization": "Token " + self.token}
         r = self.session.get(sec_url, headers=headers)
         return r
@@ -63,7 +65,13 @@ class GeodesignHubClient:
     def get_constraints(self):
         """This method gets the geometry of constraints for a project if available"""
         sec_url = (
-            self.sec_url + "projects" + "/" + self.project_id + "/" + "constraints" + "/"
+            self.sec_url
+            + "projects"
+            + "/"
+            + self.project_id
+            + "/"
+            + "constraints"
+            + "/"
         )
         headers = {"Authorization": "Token " + self.token}
         r = self.session.get(sec_url, headers=headers)
@@ -95,7 +103,9 @@ class GeodesignHubClient:
 
     def get_project_bounds(self):
         """Returns a string with bounding box for the project study area coordinates in a 'southwest_lng,southwest_lat,northeast_lng,northeast_lat' format."""
-        sec_url = self.sec_url + "projects" + "/" + self.project_id + "/" + "bounds" + "/"
+        sec_url = (
+            self.sec_url + "projects" + "/" + self.project_id + "/" + "bounds" + "/"
+        )
         headers = {"Authorization": "Token " + self.token}
         r = self.session.get(sec_url, headers=headers)
         return r
@@ -109,24 +119,8 @@ class GeodesignHubClient:
 
     def get_all_design_teams(self):
         """Return all the change teams for that project."""
-        sec_url = self.sec_url + "projects" + "/" + self.project_id + "/" + "cteams" + "/"
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
-        return r
-
-    def get_all_details_for_design_team(self, teamid: int):
-        """Return all the synthesis in the change team."""
-        assert isinstance(teamid, int), "Team id is not a integer: %r" % teamid
         sec_url = (
-            self.sec_url
-            + "projects"
-            + "/"
-            + self.project_id
-            + "/"
-            + "cteams"
-            + "/"
-            + str(teamid)
-            + "/"
+            self.sec_url + "projects" + "/" + self.project_id + "/" + "cteams" + "/"
         )
         headers = {"Authorization": "Token " + self.token}
         r = self.session.get(sec_url, headers=headers)
@@ -145,6 +139,24 @@ class GeodesignHubClient:
             + "/"
             + str(synthesisid)
             + "/"
+        )
+        headers = {"Authorization": "Token " + self.token}
+        r = self.session.get(sec_url, headers=headers)
+        return r
+
+    def get_single_synthesis_details(self, teamid: int, synthesisid: str):
+        assert isinstance(teamid, int), "Team id is not a integer: %r" % teamid
+        assert len(synthesisid) == 16, "Synthesis : %s" % synthesisid
+        sec_url = (
+            self.sec_url
+            + "projects"
+            + "/"
+            + self.project_id
+            + "/cteams/"
+            + str(teamid)
+            + "/"
+            + str(synthesisid)
+            + "/details/"
         )
         headers = {"Authorization": "Token " + self.token}
         r = self.session.get(sec_url, headers=headers)

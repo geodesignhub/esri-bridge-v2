@@ -16,6 +16,12 @@ def custom_asdict_factory(data):
 
 
 @dataclass
+class GeodesignhubDiagramGeoJSON:
+    # Source: https://www.geodesignhub.com/api/#diagrams-api-diagram-detail-get
+    geojson: FeatureCollection
+
+
+@dataclass
 class ErrorResponse:
     # A class to hold error resposnes
     message: str
@@ -75,12 +81,21 @@ class GeodesignhubDesignFeatureProperties:
 
 
 @dataclass
+class GeodesignhubDesignDetail: 
+    pass
+
+@dataclass
+class GeodesignhubTeamDesigns: 
+    designs: List[GeodesignhubDesignDetail]
+
+    
+@dataclass
 class GeodesignhubDesignGeoJSON:
     geojson: FeatureCollection
 
 @dataclass
 class GeodesignhubDataStorage: 
-    design_geojson: GeodesignhubDesignGeoJSON
+    design_esrijson: dict
     design_id: str
     design_team_id: str
     project_id: str

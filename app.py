@@ -23,6 +23,7 @@ from conn import get_redis
 import geojson
 from flask_wtf import FlaskForm, CSRFProtect
 from flask_bootstrap import Bootstrap5
+from wtforms import StringField, SubmitField, HiddenField
 
 app = Flask(__name__)
 load_dotenv(find_dotenv())
@@ -51,10 +52,13 @@ def get_locale():
 
 
 app, babel = create_app()
+
 app.secret_key = os.getenv("SECRET_KEY", "My Secret key")
 app.config["BABEL_TRANSLATION_DIRECTORIES"] = os.path.join(base_dir, "translations")
 babel.init_app(app, locale_selector=get_locale)
 
+csrf = CSRFProtect(app)
+bootstrap = Bootstrap5(app)
 
 class ExportConfirmationForm(FlaskForm):    
     agol_token = HiddenField()
@@ -119,12 +123,14 @@ def export_design():
         apitoken=apitoken,
     )
 
-    _design_feature_collection = (
-        my_geodesignhub_downloader.download_design_data_from_geodesignhub()
-    )
-    gj_serialized = json.loads(geojson.dumps(_design_feature_collection))
-    design_geojson = GeodesignhubDiagramGeoJSON(geojson=gj_serialized)
-    gdh_data_for_storage = GeodesignhubDataStorage(design_geojson = design_geojson, design_id = design_id, design_team_id = design_team_id, project_id = project_id)
+    _design_esri_json = (
+        my_geodesignhub_downloader.download_esri_design_data_from_geodesignhub()
+    )  
+    _design_details = my_geodesignhub_downloader.download_design_details_from_geodesignhub()
+    
+    _design_name = _design_details['description']
+    _num_features = len(_design_esri_json)
+    gdh_data_for_storage = GeodesignhubDataStorage(design_esrijson = _design_esri_json, design_id = design_id, design_team_id = design_team_id, project_id = project_id, design_name = _design_name)
     session_key = str(session_id) + "_design"
 
     r.set(session_key, json.dumps(asdict(gdh_data_for_storage)))
@@ -138,7 +144,7 @@ def export_design():
         agol_project_id=agol_project_id,
         message_type=message_type,
         message=confirmation_message,
-        geodesignhub_design_feature_count=10,
+        geodesignhub_design_feature_count=_num_features,
         geodesignhub_design_name="V2",
         session_id=session_id,
     )

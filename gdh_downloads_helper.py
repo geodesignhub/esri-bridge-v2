@@ -11,19 +11,15 @@ from data_definitions import (
 import json
 from shapely.geometry.base import BaseGeometry
 from json import encoder
-import utils
-from shapely.geometry import shape, mapping
-from dataclasses import asdict
+from shapely.geometry import mapping
 from dacite import from_dict
 from typing import List, Union
 from geojson import Feature, FeatureCollection, Polygon, LineString
 import GeodesignHub 
 import config
-from dataclasses import asdict
+
 
 from uuid import uuid4
-import uuid
-
 
 
 class ShapelyEncoder(json.JSONEncoder):
@@ -140,10 +136,8 @@ class GeodesignhubDataDownloader:
         center = from_dict(data_class=GeodesignhubProjectCenter, data=c.json())
         return center
 
-    def download_design_data_from_geodesignhub(
-        self,
-    ) -> Union[ErrorResponse, FeatureCollection]:
-        r = self.api_helper.get_single_synthesis(
+    def download_design_details_from_geodesignhub(self, ): 
+        r = self.api_helper.get_single_synthesis_details(
             teamid=int(self.cteam_id), synthesisid=self.synthesis_id
         )
 
@@ -161,74 +155,49 @@ class GeodesignhubDataDownloader:
 
         return _design_details_raw
 
-    def process_design_data_from_geodesignhub(
-        self, unprocessed_design_geojson
-    ) -> Union[ErrorResponse, FeatureCollection]:
+    def download_esri_design_data_from_geodesignhub(
+        self,
+    ) -> Union[ErrorResponse, dict]:
+        r = self.api_helper.get_single_synthesis_esri_json(
+            teamid=int(self.cteam_id), synthesisid=self.synthesis_id
+        )
 
-        _all_features: List[Feature] = []
-        # Populate Default building data if not available
-        for _single_diagram_feature in unprocessed_design_geojson["features"]:
-            _diagram_properties = _single_diagram_feature["properties"]
-            _project_or_policy = _diagram_properties["areatype"]
-            _diagram_properties["height"] = _diagram_properties["volume_information"][
-                "max_height"
-            ]
-            _diagram_properties["base_height"] = _diagram_properties[
-                "volume_information"
-            ]["min_height"]
-            _diagram_properties["diagram_id"] = _diagram_properties["diagramid"]
-            _diagram_properties["building_id"] = str(uuid.uuid4())
-            _feature_properties = from_dict(
-                data_class=GeodesignhubDesignFeatureProperties, data=_diagram_properties
+        try:
+            assert r.status_code == 200
+        except AssertionError:
+            error_msg = ErrorResponse(
+                status=0,
+                message="Could not parse Project ID, Diagram ID or API Token ID. One or more of these were not found in your JSON request.",
+                code=400,
             )
+            return error_msg
 
-            if _project_or_policy == "policy":
-                point_grid = utils.create_point_grid(
-                    geojson_feature=_single_diagram_feature
-                )
+        _esri_design_details_raw = r.json()
 
-                _feature_properties.height = 0
-                _feature_properties.base_height = 0
-                for _point_feature in point_grid["features"]:
-                    _point_geometry = Polygon(
-                        coordinates=_point_feature["geometry"]["coordinates"]
-                    )
-                    _feature = Feature(
-                        geometry=_point_geometry, properties=asdict(_feature_properties)
-                    )
-                    _all_features.append(_feature)
-            else:
-                # We assume that GDH will provide a polygon
-                if _single_diagram_feature["geometry"]["type"] == "Polygon":
-                    _geometry = Polygon(
-                        coordinates=_single_diagram_feature["geometry"]["coordinates"]
-                    )
-                elif _single_diagram_feature["geometry"]["type"] == "LineString":
-                    _geometry = LineString(
-                        coordinates=_single_diagram_feature["geometry"]["coordinates"]
-                    )
-                elif _single_diagram_feature["geometry"]["type"] == "Point":
-                    point = shape(_single_diagram_feature["geometry"])
-                    buffered_point = point.buffer(0.00005)
-                    buffered_polygon = export_to_json(buffered_point)
-                    _geometry = Polygon(coordinates=buffered_polygon["coordinates"])
-                    # Buffer the point
+        return _esri_design_details_raw
 
-                else:
-                    error_msg = ErrorResponse(
-                        status=0,
-                        message="Building shadows can only be computed for polygon features, you are trying to compute shadows for .",
-                        code=400,
-                    )
-                    return None
-                _feature = Feature(
-                    geometry=_geometry, properties=asdict(_feature_properties)
-                )
-                _all_features.append(_feature)
 
-        _diagram_feature_collection = FeatureCollection(features=_all_features)
+    def download_esri_design_data_from_geodesignhub(
+        self,
+    ) -> Union[ErrorResponse, FeatureCollection]:
+        r = self.api_helper.get_single_synthesis_esri_json(
+            teamid=int(self.cteam_id), synthesisid=self.synthesis_id
+        )
 
-        return _diagram_feature_collection
+        try:
+            assert r.status_code == 200
+        except AssertionError:
+            error_msg = ErrorResponse(
+                status=0,
+                message="Could not parse Project ID, Diagram ID or API Token ID. One or more of these were not found in your JSON request.",
+                code=400,
+            )
+            return error_msg
+
+        _design_details_raw = r.json()
+
+        return _design_details_raw
+
 
     def download_project_data_from_geodesignhub(
         self,

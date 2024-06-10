@@ -1,11 +1,14 @@
-{% extends "layout.html" %} {% block body %}
+{% extends "layout.html" %} 
+{% from 'bootstrap5/form.html' import render_form %}
+{% from "_formhelpers.html" import render_field %}
+{% block body %}
 <div class="container">
     <!-- Example row of columns -->
     <div class="row">
         <div class="p-4"></div>
         <div class="col-md-12">
-            <h4>Geodesignhub → ESRI Data Export
-            <small class="text-muted">Export design data to ArcGIS Online</small></h4>
+            <h4>Geodesignhub → ArcGIS Online Data Export
+            <small class="text-muted">Export design data</small></h4>
             <br>
             {% if data.message %}
             <div class="mb-3">
