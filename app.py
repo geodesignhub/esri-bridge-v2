@@ -109,8 +109,6 @@ def export_design():
             )
         )
 
-
-
     session_id = uuid.uuid4()
 
     my_geodesignhub_downloader = GeodesignhubDataDownloader(

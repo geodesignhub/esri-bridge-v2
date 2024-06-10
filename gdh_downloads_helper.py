@@ -3,33 +3,47 @@ from data_definitions import (
     GeodesignhubProjectBounds,
     GeodesignhubSystem,
     GeodesignhubProjectData,
-    GeodesignhubFeatureProperties,
-    BuildingData,
     GeodesignhubDesignFeatureProperties,
     GeodesignhubProjectCenter,
     GeodesignhubProjectTags,
     GeodesignhubSystemDetail,
-    TreeFeatureProperties,
-    DiagramUploadDetails,
-    UploadSuccessResponse,
 )
-import utils
-from shapely.geometry import shape
 import json
+from shapely.geometry.base import BaseGeometry
+from json import encoder
+import utils
+from shapely.geometry import shape, mapping
 from dataclasses import asdict
 from dacite import from_dict
 from typing import List, Union
-from geojson import Feature, FeatureCollection, Polygon, LineString, Point
-import GeodesignHub, config
+from geojson import Feature, FeatureCollection, Polygon, LineString
+import GeodesignHub 
+import config
 from dataclasses import asdict
 
 from uuid import uuid4
 import uuid
 
 
+
+class ShapelyEncoder(json.JSONEncoder):
+    """Encodes JSON strings into shapes processed by Shapely"""
+
+    def default(self, obj):
+        if isinstance(obj, BaseGeometry):
+            return mapping(obj)
+        return json.JSONEncoder.default(self, obj)
+
+
+def export_to_json(data):
+    """Export a shapely output to JSON"""
+    encoder.FLOAT_REPR = lambda o: format(o, ".6f")
+    return json.loads(json.dumps(data, sort_keys=True, cls=ShapelyEncoder))
+
+
 class GeodesignhubDataDownloader:
     """
-    A class to download data from Geodesignhub
+    A class to download and process data from Geodesignhub
     """
 
     def __init__(
@@ -108,33 +122,6 @@ class GeodesignhubDataDownloader:
             )
             return error_msg
         return t.json()
-
-    def upload_diagram(
-        self, diagram_upload_details: DiagramUploadDetails
-    ) -> Union[ErrorResponse, UploadSuccessResponse]:
-
-        upload_job = self.api_helper.post_as_diagram(
-            geoms=json.loads(diagram_upload_details.geometry),
-            projectorpolicy=diagram_upload_details.project_or_policy,
-            featuretype=diagram_upload_details.feature_type,
-            description=diagram_upload_details.description,
-            sysid=diagram_upload_details.sys_id,
-            fundingtype=diagram_upload_details.funding_type,
-        )
-
-        job_result = upload_job.json()
-
-        if upload_job.status_code == 201:
-            upload_result = UploadSuccessResponse(
-                message="Successfully uploaded diagram", code=201, status=1
-            )
-
-        else:
-            upload_result = ErrorResponse(
-                message=job_result["status"], code=400, status=0
-            )
-
-        return upload_result
 
     def download_project_center(
         self,
@@ -242,127 +229,6 @@ class GeodesignhubDataDownloader:
         _diagram_feature_collection = FeatureCollection(features=_all_features)
 
         return _diagram_feature_collection
-
-    def download_diagram_data_from_geodesignhub(
-        self,
-    ) -> Union[ErrorResponse, FeatureCollection]:
-        my_api_helper = GeodesignHub.GeodesignHubClient(
-            url=config.apisettings["serviceurl"],
-            project_id=self.project_id,
-            token=self.apitoken,
-        )
-        # Download Data
-        d = my_api_helper.get_single_diagram(diagid=self.diagram_id)
-
-        try:
-            assert d.status_code == 200
-        except AssertionError:
-            error_msg = ErrorResponse(
-                status=0,
-                message="Could not parse Project ID, Diagram ID or API Token ID. One or more of these were not found in your JSON request.",
-                code=400,
-            )
-            return error_msg
-
-        _diagram_details_raw = d.json()
-        # Populate Default building data if not available
-        if not bool(_diagram_details_raw["building_data"]):
-            _default_building_data = {
-                "meters_above_ground": 10,
-                "meters_below_ground": 0,
-            }
-        else:
-            _default_building_data = _diagram_details_raw["building_data"]
-
-        _diagram_details_feature_collection = _diagram_details_raw["geojson"]
-
-        _all_features: List[Feature] = []
-        for f in _diagram_details_feature_collection["features"]:
-            _f_props = f["properties"]
-            _building_data = BuildingData(
-                height=_default_building_data["meters_above_ground"],
-                base_height=_default_building_data["meters_below_ground"],
-            )
-
-            _diagram_details_raw["height"] = asdict(_building_data)["height"]
-            _diagram_details_raw["base_height"] = asdict(_building_data)["base_height"]
-            _diagram_details_raw["diagram_id"] = self.diagram_id
-            _diagram_details_raw["building_id"] = str(uuid.uuid4())
-            _diagram_details_raw["color"] = _f_props["color"]
-            _feature_properties = from_dict(
-                data_class=GeodesignhubFeatureProperties, data=_diagram_details_raw
-            )
-
-            # We assume that GDH will provide a polygon
-            if f["geometry"]["type"] == "Polygon":
-                _geometry = Polygon(coordinates=f["geometry"]["coordinates"])
-            elif f["geometry"]["type"] == "LineString":
-                _geometry = LineString(coordinates=f["geometry"]["coordinates"])
-            else:
-                error_msg = ErrorResponse(
-                    status=0,
-                    message="Building shadows can only be computed for polygon features, you are trying to compute shadows for .",
-                    code=400,
-                )
-                return None
-            _feature = Feature(
-                geometry=_geometry, properties=asdict(_feature_properties)
-            )
-            _all_features.append(_feature)
-
-        _diagram_feature_collection = FeatureCollection(features=_all_features)
-
-        return _diagram_feature_collection
-
-    def generate_tree_point_feature_collection(
-        self, point_feature_list
-    ) -> FeatureCollection:
-
-        _all_tree_features: List[Feature] = []
-        for point_feature in point_feature_list:
-            _geometry = Point(coordinates=point_feature["geometry"]["coordinates"])
-            _feature = Feature(geometry=_geometry, properties={})
-            _all_tree_features.append(_feature)
-
-        _trees_feature_collection = FeatureCollection(features=_all_tree_features)
-
-        return _trees_feature_collection
-
-    def filter_design_tree_points(
-        self, unprocessed_design_geojson: FeatureCollection
-    ) -> FeatureCollection:
-        # This method filters the tree points out of a design Geojson
-
-        _all_tree_features: List[Feature] = []
-        # Populate Default building data if not available
-        for f in unprocessed_design_geojson["features"]:
-            if f["geometry"]["type"] in ["Point"]:
-                _geometry = Point(coordinates=f["geometry"]["coordinates"])
-                _diagram_properties = f["properties"]
-                _tree_feature_properties = TreeFeatureProperties(
-                    author=_diagram_properties["author"],
-                    description=_diagram_properties["description"],
-                )
-                # _feature_properties = from_dict(
-                #     data_class=GeodesignhubDesignFeatureProperties, data=_diagram_properties
-                # )
-                _feature = Feature(
-                    geometry=_geometry, properties=asdict(_tree_feature_properties)
-                )
-                _all_tree_features.append(_feature)
-
-        _trees_feature_collection = FeatureCollection(features=_all_tree_features)
-
-        return _trees_feature_collection
-
-    def filter_to_get_gi_system(
-        self, geodesignhub_project_data: GeodesignhubProjectData
-    ) -> int:
-        geodesignhub_project_data = asdict(geodesignhub_project_data)
-        interesting_system = [
-            d for d in geodesignhub_project_data["systems"] if d["sysname"] == "TREE"
-        ]
-        return interesting_system[0]["id"]
 
     def download_project_data_from_geodesignhub(
         self,
