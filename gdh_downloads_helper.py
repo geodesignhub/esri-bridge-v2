@@ -177,27 +177,6 @@ class GeodesignhubDataDownloader:
         return _esri_design_details_raw
 
 
-    def download_esri_design_data_from_geodesignhub(
-        self,
-    ) -> Union[ErrorResponse, FeatureCollection]:
-        r = self.api_helper.get_single_synthesis_esri_json(
-            teamid=int(self.cteam_id), synthesisid=self.synthesis_id
-        )
-
-        try:
-            assert r.status_code == 200
-        except AssertionError:
-            error_msg = ErrorResponse(
-                status=0,
-                message="Could not parse Project ID, Diagram ID or API Token ID. One or more of these were not found in your JSON request.",
-                code=400,
-            )
-            return error_msg
-
-        _design_details_raw = r.json()
-
-        return _design_details_raw
-
 
     def download_project_data_from_geodesignhub(
         self,

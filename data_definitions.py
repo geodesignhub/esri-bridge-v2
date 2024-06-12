@@ -79,10 +79,11 @@ class GeodesignhubDesignFeatureProperties:
     volume_information: VolumeInformation
     tag_codes: str
 
-
 @dataclass
 class GeodesignhubDesignDetail: 
-    pass
+    description: str
+    creationdate: str
+    id: str
 
 @dataclass
 class GeodesignhubTeamDesigns: 
@@ -95,11 +96,19 @@ class GeodesignhubDesignGeoJSON:
 
 @dataclass
 class GeodesignhubDataStorage: 
-    design_esrijson: dict
+    design_geojson: GeodesignhubDesignGeoJSON
     design_id: str
     design_team_id: str
     project_id: str
     design_name: str
+
+@dataclass
+class ExportToArcGISRequestPayload:
+    agol_token: str
+    agol_project_id: str
+    gdh_design_details: GeodesignhubDataStorage
+    session_id: str
+
 
 @dataclass
 class GeodesignhubSystem:

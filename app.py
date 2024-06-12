@@ -5,25 +5,31 @@ from data_definitions import (
     ExportConfirmationPayload,
     MessageType,
     custom_asdict_factory,
-    GeodesignhubDiagramGeoJSON,
-    GeodesignhubDataStorage
+    GeodesignhubDesignDetail,
+    GeodesignhubDataStorage,
+    GeodesignhubDesignGeoJSON,
+    ExportToArcGISRequestPayload
 )
+from notifications_helper import notify_agol_submission_success, notify_agol_submission_failure
 from dacite import from_dict
 from flask import request, Response
 from dotenv import load_dotenv, find_dotenv
 import os
+import utils
 from flask import session, redirect, url_for
 from dataclasses import asdict
 from flask import render_template
 from esri_bridge import create_app
 import uuid
+import geojson
 from gdh_downloads_helper import GeodesignhubDataDownloader
 import json
 from conn import get_redis
-import geojson
+from rq import Queue
+from worker import conn
 from flask_wtf import FlaskForm, CSRFProtect
 from flask_bootstrap import Bootstrap5
-from wtforms import StringField, SubmitField, HiddenField
+from wtforms import SubmitField, HiddenField
 
 app = Flask(__name__)
 load_dotenv(find_dotenv())
@@ -32,7 +38,7 @@ if ENV_FILE:
     load_dotenv(ENV_FILE)
 base_dir = os.path.abspath(os.path.dirname(__file__))
 r = get_redis()
-
+q = Queue(connection=conn)
 csrf = CSRFProtect(app)
 bootstrap = Bootstrap5(app)
 
@@ -68,7 +74,7 @@ class ExportConfirmationForm(FlaskForm):
 
 @app.route("/export/", methods=["GET"])
 def export_design():
-    """This is the root of the webservice, upon successful authentication a text will be displayed in the browser"""
+    """This is the root of the web service, upon successful authentication a text will be displayed in the browser"""
     try:
         project_id = request.args.get("projectid")
         apitoken = request.args.get("apitoken")
@@ -103,12 +109,24 @@ def export_design():
         data=_design_details,
         )
 
+        agol_submission_job = ExportToArcGISRequestPayload(agol_token = agol_token, agol_project_id=agol_project_id, gdh_design_details=design_details, session_id = session_id)
+
+        agol_submission_job = q.enqueue(
+            utils.export_design_json_to_agol,
+            asdict(agol_submission_job),
+            on_success=notify_agol_submission_success,
+            on_failure=notify_agol_submission_failure,
+            job_id= session_id
+        )
+
+
         return redirect(
             url_for(
                 "export_result",
                 agol_token=agol_token,
+                session_id = session_id, 
                 agol_project_id=agol_project_id,
-                status=upload_response_dict["status"],
+                status=1,
                 code=307,
             )
         )
@@ -123,14 +141,17 @@ def export_design():
         apitoken=apitoken,
     )
 
-    _design_esri_json = (
-        my_geodesignhub_downloader.download_esri_design_data_from_geodesignhub()
+    _design_feature_collection = (
+        my_geodesignhub_downloader.download_design_details_from_geodesignhub()
     )  
+    gj_serialized = json.loads(geojson.dumps(_design_feature_collection))
+
+    design_geojson = GeodesignhubDesignGeoJSON(geojson=gj_serialized)
     _design_details = my_geodesignhub_downloader.download_design_details_from_geodesignhub()
-    
-    _design_name = _design_details['description']
-    _num_features = len(_design_esri_json)
-    gdh_data_for_storage = GeodesignhubDataStorage(design_esrijson = _design_esri_json, design_id = design_id, design_team_id = design_team_id, project_id = project_id, design_name = _design_name)
+    design_details = from_dict(data_class = GeodesignhubDesignDetail, data = _design_details)
+    _design_name = design_details.description
+    _num_features = len(gj_serialized['features'])
+    gdh_data_for_storage = GeodesignhubDataStorage(design_geojson = design_geojson, design_id = design_id, design_team_id = design_team_id, project_id = project_id, design_name = _design_name)
     session_key = str(session_id) + "_design"
 
     r.set(session_key, json.dumps(asdict(gdh_data_for_storage)))
@@ -161,6 +182,7 @@ def redirect_after_export():
 
     status = int(request.args.get("status"))
     agol_token = request.args["agol_token"]
+    session_id = request.args["session_id"]
     agol_project_id = request.args["agol_project_id"]
     message = (
         "Design Successfully exported to ArcGIS Online"
@@ -172,6 +194,7 @@ def redirect_after_export():
         op=status,
         message=message,
         agol_token=agol_token,
+        session_id = session_id, 
         agol_project_id=agol_project_id,
     )
 
