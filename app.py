@@ -134,7 +134,6 @@ def export_design():
             job_id= session_id
         )
 
-
         return redirect(
             url_for(
                 "export_result",
@@ -159,11 +158,10 @@ def export_design():
     _num_features = len(gj_serialized['features'])
     gdh_data_for_storage = GeodesignhubDataStorage(design_geojson = design_geojson, design_id = design_id, design_team_id = design_team_id, project_id = project_id, design_name = _design_name)
     session_key = str(session_id) + "_design"
-
+    # Cache it
     r.set(session_key, json.dumps(asdict(gdh_data_for_storage)))
     r.expire(session_key, time=60000)
 
-    # Cache it
     confirmation_message = "Ready for migration"
     message_type = MessageType.success
     export_confirmation_payload = ExportConfirmationPayload(
@@ -178,7 +176,7 @@ def export_design():
 
     return render_template(
         "export.html",
-        data=asdict(export_confirmation_payload, dict_factory=custom_asdict_factory),
+        export_template_data=asdict(export_confirmation_payload, dict_factory=custom_asdict_factory),
         form=export_confirmation_form,
     )
 

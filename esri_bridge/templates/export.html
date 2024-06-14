@@ -10,16 +10,16 @@
             <h4>Geodesignhub → ArcGIS Online Data Export
             <small class="text-muted">Export design data</small></h4>
             <br>
-            {% if data.message %}
+            {% if export_template_data.message %}
             <div class="mb-3">
               <div class="alert alert-{{data.message_type}}" role="alert">
-                {{data.message}}
+                {{export_template_data.message}}
               </div>
             </div>
             {% endif %}
             <br>
-            <h5>Ready to export {{data.geodesignhub_design_name}}...</h5>
-            <p>Please confirm that you want to export the design with <b>{{data.geodesignhub_design_feature_count}}</b> diagrams to ArcGIS Online. </p>
+            <h5>Ready to export {{export_template_data.geodesignhub_design_name}}...</h5>
+            <p>Please confirm that you want to export the design with <b>{{export_template_data.geodesignhub_design_feature_count}}</b> diagrams to ArcGIS Online. </p>
             {{ render_form(form) }}
          
         </div>

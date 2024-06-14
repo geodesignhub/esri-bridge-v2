@@ -1,4 +1,3 @@
-
 from data_definitions import (
     ExportToArcGISRequestPayload
 )
@@ -8,6 +7,7 @@ from dacite import from_dict
 from data_definitions import AGOLGeoJSONUploadPayload
 import json 
 from dataclasses import asdict
+import time
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 ENV_FILE = find_dotenv()
@@ -23,8 +23,6 @@ class ArcGISHelper():
     def create_gis_object(self)->GIS:
         gis = GIS("https://igcollab.maps.arcgis.com/",token = self.agol_token)
         return gis
-
-
 
 def export_design_json_to_agol(submit_to_arcgis_request):
     _submit_to_arcgis_request = from_dict(data_class = ExportToArcGISRequestPayload, data = submit_to_arcgis_request)
