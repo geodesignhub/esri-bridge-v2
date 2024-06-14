@@ -4,6 +4,7 @@ from data_definitions import (
     GeodesignhubSystem,
     GeodesignhubProjectData,
     GeodesignhubDesignFeatureProperties,
+    GeodesignhubFeatureProperties,
     GeodesignhubProjectCenter,
     GeodesignhubProjectTags,
     GeodesignhubSystemDetail,
@@ -15,7 +16,8 @@ from shapely.geometry import mapping
 from dacite import from_dict
 from typing import List, Union
 from geojson import Feature, FeatureCollection, Polygon, LineString
-import GeodesignHub 
+import GeodesignHub
+from dataclasses import asdict
 import config
 
 
@@ -136,7 +138,9 @@ class GeodesignhubDataDownloader:
         center = from_dict(data_class=GeodesignhubProjectCenter, data=c.json())
         return center
 
-    def download_design_details_from_geodesignhub(self, ): 
+    def download_design_details_from_geodesignhub(
+        self,
+    ):
         r = self.api_helper.get_single_synthesis_details(
             teamid=int(self.cteam_id), synthesisid=self.synthesis_id
         )
@@ -154,6 +158,60 @@ class GeodesignhubDataDownloader:
         _design_details_raw = r.json()
 
         return _design_details_raw
+
+    def parse_transform_geojson(self, design_feature_collection) -> FeatureCollection:
+        _design_details_feature_collection = design_feature_collection["geojson"]        
+        _all_features: List[Feature] = []
+        for f in _design_details_feature_collection["features"]:
+            _diagram_properties_raw = {}
+            _f_props = f["properties"]
+            
+            _diagram_properties_raw["diagram_id"] = _f_props["diagramid"]
+            _diagram_properties_raw["project_or_policy"] = _f_props["areatype"]
+            _diagram_properties_raw["diagram_name"] = _f_props["description"]
+            _diagram_properties_raw["color"] = _f_props["color"]
+            _diagram_properties_raw["tag_codes"] = _f_props["tag_codes"]
+            _diagram_properties_raw["notes"] = _f_props["notes"]
+            _diagram_properties_raw["start_date"] = _f_props["start_date"]
+            _diagram_properties_raw["end_date"] = _f_props["end_date"]
+            _feature_properties = from_dict(
+                data_class=GeodesignhubFeatureProperties, data=_diagram_properties_raw
+            )
+
+            # We assume that GDH will provide a polygon
+            if f["geometry"]["type"] == "Polygon":
+                _geometry = Polygon(coordinates=f["geometry"]["coordinates"])
+            elif f["geometry"]["type"] == "LineString":
+                _geometry = LineString(coordinates=f["geometry"]["coordinates"])
+            else:
+                return None
+            _feature = Feature(geometry=_geometry, properties=asdict(_feature_properties))
+            _all_features.append(_feature)
+
+        _diagram_feature_collection = FeatureCollection(features=_all_features)
+
+        return _diagram_feature_collection
+
+    def download_design_data_from_geodesignhub(
+        self,
+    ) -> Union[ErrorResponse, dict]:
+        r = self.api_helper.get_single_synthesis(
+            teamid=int(self.cteam_id), synthesisid=self.synthesis_id
+        )
+
+        try:
+            assert r.status_code == 200
+        except AssertionError:
+            error_msg = ErrorResponse(
+                status=0,
+                message="Could not parse Project ID, Diagram ID or API Token ID. One or more of these were not found in your JSON request.",
+                code=400,
+            )
+            return error_msg
+
+        _esri_design_details_raw = r.json()
+
+        return _esri_design_details_raw
 
     def download_esri_design_data_from_geodesignhub(
         self,
@@ -175,8 +233,6 @@ class GeodesignhubDataDownloader:
         _esri_design_details_raw = r.json()
 
         return _esri_design_details_raw
-
-
 
     def download_project_data_from_geodesignhub(
         self,

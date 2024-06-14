@@ -40,13 +40,14 @@ class MessageType(str, Enum):
 
 @dataclass
 class GeodesignhubFeatureProperties:
-    sysid: int
-    description: str
-    height: float
-    base_height: float
+    project_or_policy:str
+    diagram_name: str
     color: str
     diagram_id: int
-    building_id: str
+    tag_codes: str
+    start_date: str
+    end_date: str
+    notes:str
 
 
 @dataclass
@@ -65,6 +66,13 @@ class ExportConfirmationPayload:
     geodesignhub_design_name: str
     session_id: str
 
+
+@dataclass
+class AGOLGeoJSONUploadPayload: 
+    design_title:str
+    description: str
+    diagram_id:str
+    type:str = "GeoJson"
 
 @dataclass
 class GeodesignhubDesignFeatureProperties:
