@@ -27,7 +27,6 @@ def export_design_json_to_agol(submit_to_arcgis_request):
     _gdh_design_feature_collection = _gdh_design_details.design_geojson.geojson
 
     for feature in _gdh_design_feature_collection['features']:
-        print('h33')
         feature['properties'] = {}
         feature_layer_properties = AGOLGeoJSONUploadPayload(
         title= _gdh_design_details.design_name,
