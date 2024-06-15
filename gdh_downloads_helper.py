@@ -189,7 +189,7 @@ class GeodesignhubDataDownloader:
             _all_features.append(_feature)
 
         _diagram_feature_collection = FeatureCollection(features=_all_features)
-
+        
         return _diagram_feature_collection
 
     def download_design_data_from_geodesignhub(

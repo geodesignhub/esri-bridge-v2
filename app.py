@@ -118,6 +118,7 @@ def export_design():
         
         _design_feature_collection = json.loads(design_details_str.decode("utf-8"))
         _design_details_parsed = my_geodesignhub_downloader.parse_transform_geojson(design_feature_collection=_design_feature_collection['design_geojson'])
+        
         _design_feature_collection['design_geojson']['geojson'] = _design_details_parsed
         design_details =  from_dict(
         data_class=GeodesignhubDataStorage,
@@ -125,10 +126,9 @@ def export_design():
         )
         
         agol_submission_payload = ExportToArcGISRequestPayload(agol_token = agol_token, agol_project_id=agol_project_id, gdh_design_details=design_details, session_id = session_id)
-        print(agol_submission_payload)
         agol_submission_job = q.enqueue(
             utils.export_design_json_to_agol,
-            asdict(agol_submission_payload),
+            agol_submission_payload,
             on_success=notify_agol_submission_success,
             on_failure=notify_agol_submission_failure,
             job_id= session_id
@@ -136,7 +136,7 @@ def export_design():
 
         return redirect(
             url_for(
-                "export_result",
+                "redirect_after_export",
                 agol_token=agol_token,
                 session_id = session_id, 
                 agol_project_id=agol_project_id,

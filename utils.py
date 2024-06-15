@@ -25,15 +25,16 @@ class ArcGISHelper():
         return gis
 
 def export_design_json_to_agol(submit_to_arcgis_request):
-    _submit_to_arcgis_request = from_dict(data_class = ExportToArcGISRequestPayload, data = submit_to_arcgis_request)
-    _gdh_design_details = _submit_to_arcgis_request.gdh_design_details
-    agol_token = _submit_to_arcgis_request.agol_token
+    
+    _gdh_design_details = submit_to_arcgis_request.gdh_design_details
+    agol_token = submit_to_arcgis_request.agol_token
     my_arcgis_helper = ArcGISHelper(agol_token= agol_token)
     gis = my_arcgis_helper.create_gis_object()
 
     _gdh_design_feature_collection = _gdh_design_details.design_geojson.geojson
 
     for feature in _gdh_design_feature_collection['features']:
+        print('h33')
         feature['properties'] = {}
         feature_layer_properties = AGOLGeoJSONUploadPayload(
         title= _gdh_design_details.design_name,
@@ -43,6 +44,5 @@ def export_design_json_to_agol(submit_to_arcgis_request):
         print(feature)
         
         # feature_item = gis.content.add(json.loads(json.dumps(asdict(feature_layer_properties))), feature)
-
         # feature_item.publish()
         
