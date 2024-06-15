@@ -1,13 +1,6 @@
-from data_definitions import (
-    ExportToArcGISRequestPayload
-)
 from arcgis.gis import GIS
 from conn import get_redis
-from dacite import from_dict
 from data_definitions import AGOLGeoJSONUploadPayload
-import json 
-from dataclasses import asdict
-import time
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 ENV_FILE = find_dotenv()
