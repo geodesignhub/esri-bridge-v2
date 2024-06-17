@@ -1,6 +1,9 @@
 from arcgis.gis import GIS
 from conn import get_redis
 from data_definitions import AGOLGeoJSONUploadPayload, ExportToArcGISRequestPayload
+from geojson import Point, Polygon, LineString, Feature, FeatureCollection
+from typing import List
+from dataclasses import asdict
 from os import environ
 from dotenv import load_dotenv, find_dotenv
 
@@ -27,7 +30,10 @@ def export_design_json_to_agol(submit_to_arcgis_request: ExportToArcGISRequestPa
     my_arcgis_helper = ArcGISHelper()
     gis = my_arcgis_helper.create_gis_object()
 
-    _gdh_design_feature_collection = _gdh_design_details.design_geojson.geojson
+    _gdh_design_feature_collection:FeatureCollection = _gdh_design_details.design_geojson.geojson
+    point_feature_list: List[Feature] = []
+    linestring_feature_list: List[Feature] = []
+    polygon_feature_list: List[Feature] = []
 
     for feature in _gdh_design_feature_collection["features"]:
         feature["properties"] = {}
@@ -38,8 +44,14 @@ def export_design_json_to_agol(submit_to_arcgis_request: ExportToArcGISRequestPa
             ),
             diagram_id=10,
         )
-        print(feature_layer_properties)
-        print(feature)
+        feature["properties"] = asdict(feature_layer_properties)
+        if feature.geometry.type in ['Point', 'MultiPoint']:
+            point_feature_list.append(feature)
+        if feature.geometry.type in ['Polygon', 'MultiPolygon']:
+            polygon_feature_list.append(feature)
+        if feature.geometry.type in ['LineString', 'MultiLineString']:
+            linestring_feature_list.append(feature)
+            
 
-        # feature_item = gis.content.add(json.loads(json.dumps(asdict(feature_layer_properties))), feature)
-        # feature_item.publish()
+    # feature_item = gis.content.add(json.loads(json.dumps(asdict(feature_layer_properties))), feature)
+    # feature_item.publish()
