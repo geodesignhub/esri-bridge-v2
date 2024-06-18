@@ -10,6 +10,7 @@ if ENV_FILE:
 r = get_redis()
 
 class ArcGISHelper():
+    """ A class to help connect to AGOL, called async at this time"""
     def __init__(self, agol_token: str):
         self.agol_token = agol_token
 
