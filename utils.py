@@ -14,9 +14,11 @@ if ENV_FILE:
     load_dotenv(ENV_FILE)
 r = get_redis()
 
-
-class ArcGISHelper:
-    def __init__(self):
+class ArcGISHelper():
+    """ A class to help connect to AGOL, called async at this time"""
+    def __init__(self, agol_token: str):
+        self.agol_token = agol_token
+        
         self.client_id = environ.get("CLIENT_ID", "TEST_CLIENT_ID")
 
     def create_gis_object(self) -> GIS:
