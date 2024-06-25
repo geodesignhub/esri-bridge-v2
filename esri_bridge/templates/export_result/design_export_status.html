@@ -5,36 +5,49 @@
 {% endblock %}
 {% block body %}
 <div class="container">
-    <!-- Example row of columns -->    
+    <!-- Example row of columns -->
     <br>
     <div class="row">
-        <div class="col-md-12">                   
+        <div class="col-md-12">
             <div class="alert {% if op %}alert-success{% else %}alert-warning {% endif %}" role="alert">
                 <p>{{message}}</p>
                 <p id="latest_update"></p>
             </div>
         </div>
-    </div>       
+    </div>
 </div><!-- /container -->
 {% endblock %}
 
-{% block footer %} 
+{% block footer %}
 <script type="text/javascript">
-var source = new EventSource("{{ url_for('sse.stream') }}");
-let job_submission_result = {{op}};
-const room = job_submission_result.session_id;
-source.addEventListener('gdh_agol_export_success', function (event) {
-            var data = JSON.parse(event.data);
-            // do what you want with this data
-            let job_key = data['job_id'];
-            let session_id = job_key.split(':')[0]
-            if (session_id === room) {
-                // The message is for the current session, download the data...
-                let status_ele = document.getElementById("latest_update");
-                status_ele.innerHTML("Successfully submitted data to ArcGIS online")
-            }
-        }, false);
+    var source = new EventSource("{{ url_for('sse.stream') }}");
+    let job_submission_result = {{ op }};
+    const room = job_submission_result.session_id;
+    
+    source.addEventListener('gdh_agol_export_success', function (event) {
+        var data = JSON.parse(event.data);
+        // do what you want with this data
+        let job_key = data['job_id'];
+        let session_id = job_key.split(':')[0]
+        if (session_id === room) {
+            // The message is for the current session, download the data...
+            let status_ele = document.getElementById("latest_update");
+            status_ele.innerHTML("Successfully submitted data to ArcGIS online")
+        }
+    }, false);
 
+
+    source.addEventListener('gdh_agol_export_failure', function (event) {
+        var data = JSON.parse(event.data);
+        // do what you want with this data
+        let job_key = data['job_id'];
+        let session_id = job_key.split(':')[0]
+        if (session_id === room) {
+            // The message is for the current session, download the data...
+            let status_ele = document.getElementById("latest_update");
+            status_ele.innerHTML("Failed to submit data to ArcGIS online")
+        }
+    }, false);
 
 
 </script>

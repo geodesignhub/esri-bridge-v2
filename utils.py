@@ -10,7 +10,8 @@ import json
 from dataclasses import asdict
 from data_definitions import AGOLItemDetails
 import logging
-
+import tempfile
+import os
 logger = logging.getLogger("esri-gdh-bridge")
 from dotenv import load_dotenv, find_dotenv
 
@@ -48,11 +49,19 @@ def export_design_json_to_agol(submit_to_arcgis_request: ExportToArcGISRequestPa
         description=_gdh_design_details.design_id,
         type="GeoJson",
     )
+    
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as output:
+        output.write(geojson.dumps(_gdh_design_feature_collection))
 
-    geojson_item = gis.content.add(
-        json.loads(json.dumps(asdict(agol_item_details))), json.loads(geojson.dumps(_gdh_design_feature_collection))
+
+    geojson_item = gis.content.add(item_properties= asdict(agol_item_details), data= output.name
     )
-    feature_layer_item = geojson_item.publish()
+    os.unlink(output.name)
+    output.delete = True
+
+    feature_layer_item = geojson_item.publish(file_type='geojson')
+    print(feature_layer_item.url)
+    
     # TODO: Display the FL title etc. from the ArcGIS link
     # Show me the item
     # Show me the map
