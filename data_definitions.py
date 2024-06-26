@@ -49,6 +49,7 @@ class GeodesignhubFeatureProperties:
     start_date: str
     end_date: str
     notes: str
+    grid_location: str
 
 
 @dataclass

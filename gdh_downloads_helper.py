@@ -165,7 +165,7 @@ class GeodesignhubDataDownloader:
         for f in _design_details_feature_collection["features"]:
             _diagram_properties_raw = {}
             _f_props = f["properties"]
-            
+            print(_f_props)
             _diagram_properties_raw["diagram_id"] = _f_props["diagramid"]
             _diagram_properties_raw["project_or_policy"] = _f_props["areatype"]
             _diagram_properties_raw["diagram_name"] = _f_props["description"]
@@ -174,6 +174,8 @@ class GeodesignhubDataDownloader:
             _diagram_properties_raw["notes"] = _f_props["notes"]
             _diagram_properties_raw["start_date"] = _f_props["start_date"]
             _diagram_properties_raw["end_date"] = _f_props["end_date"]
+            _diagram_properties_raw["grid_location"] = _f_props["grid_location"]                      
+
             _feature_properties = from_dict(
                 data_class=GeodesignhubFeatureProperties, data=_diagram_properties_raw
             )
