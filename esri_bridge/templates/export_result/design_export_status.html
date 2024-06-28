@@ -8,12 +8,20 @@
     <!-- Example row of columns -->
     <br>
     <div class="row">
-        <div class="col-md-12">
-            <div class="alert {% if op %}alert-success{% else %}alert-warning {% endif %}" role="alert">
-                <p>{{message}}</p>
-                <p id="latest_update"></p>
+        <h6>
+            Migration Status
+            <small class="text-body-secondary">Monitor submission to AGOL system</small>
+            <br><br>
+            <div class="col-md-12">
+                <div class="alert {% if op %}alert-primary{% else %}alert-warning {% endif %}" role="alert">
+                    {{message}}
+                </div>
+                <div id="latest_update" class="alert" role="alert">
+                    <div class="spinner-border text-secondary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
             </div>
-        </div>
     </div>
 </div><!-- /container -->
 {% endblock %}
@@ -22,32 +30,58 @@
 <script type="text/javascript">
     var source = new EventSource("{{ url_for('sse.stream') }}");
     let job_submission_result = {{ op }};
-    const room = job_submission_result.session_id;
-    
+    const room = "{{session_id}}";
     source.addEventListener('gdh_agol_export_success', function (event) {
         var data = JSON.parse(event.data);
-        // do what you want with this data
         let job_key = data['job_id'];
-        let session_id = job_key.split(':')[0]
+        let session_id = job_key.split(':')[0];
         if (session_id === room) {
-            // The message is for the current session, download the data...
-            let status_ele = document.getElementById("latest_update");
-            status_ele.innerHTML("Successfully submitted data to ArcGIS online")
+            let session_processing_url = window.location.origin + '/get_agol_processing_result?session_id=' + session_id;
+            get_agol_processing_results(session_processing_url);
         }
     }, false);
-
 
     source.addEventListener('gdh_agol_export_failure', function (event) {
         var data = JSON.parse(event.data);
-        // do what you want with this data
         let job_key = data['job_id'];
-        let session_id = job_key.split(':')[0]
+        let session_id = job_key.split(':')[0];
         if (session_id === room) {
-            // The message is for the current session, download the data...
-            let status_ele = document.getElementById("latest_update");
-            status_ele.innerHTML("Failed to submit data to ArcGIS online")
+            let session_processing_url = window.location.origin + '/gdh_generated_shadow?shadow_key=' + session_id;
+            get_agol_processing_results(session_processing_url);
         }
     }, false);
+
+
+    function get_agol_processing_results(roads_shadow_stats_url) {
+        fetch(roads_shadow_stats_url)
+            .then((response) => {
+                return response.json();
+            })
+            .then((agol_processing_response) => {
+                          
+                let a = document.createElement('a');
+                let nbsp = document.createTextNode("\u00A0");
+                a.href =  agol_processing_response.success_url; 
+                a.innerHTML = "see the layer on ArcGIS ↗"
+                a.target="_blank" 
+                let span = document.createElement('span');
+                span.innerHTML = agol_processing_response.message;
+                let status_ele = document.getElementById("latest_update");
+                status_ele.innerHTML ="";
+                status_ele.appendChild(span);
+                status_ele.appendChild(nbsp);
+                status_ele.appendChild(a);
+                if (agol_processing_response.status == 0) {
+                    status_ele.classList.add('alert-warning');
+                }
+                else if (agol_processing_response.status == 1) {
+                    status_ele.classList.add('alert-success');
+                }
+            }).catch((error) => {
+                let status_ele = document.getElementById("latest_update");
+                status_ele.innerHTML = "Failed to get results from the Bridge";
+            });
+    }
 
 
 </script>

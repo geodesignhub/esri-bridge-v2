@@ -4,13 +4,17 @@ from data_definitions import (
     ErrorResponse,
     ExportConfirmationPayload,
     MessageType,
+    AGOLExportStatus,
     custom_asdict_factory,
     GeodesignhubDesignDetail,
     GeodesignhubDataStorage,
     GeodesignhubDesignGeoJSON,
-    ExportToArcGISRequestPayload
+    ExportToArcGISRequestPayload,
 )
-from notifications_helper import notify_agol_submission_success, notify_agol_submission_failure
+from notifications_helper import (
+    notify_agol_submission_success,
+    notify_agol_submission_failure,
+)
 from dacite import from_dict
 from flask import request, Response
 from dotenv import load_dotenv, find_dotenv
@@ -30,7 +34,7 @@ from worker import conn
 from flask_wtf import FlaskForm, CSRFProtect
 from flask_bootstrap import Bootstrap5
 from wtforms import SubmitField, HiddenField
-import logging 
+import logging
 from logging.config import dictConfig
 
 load_dotenv(find_dotenv())
@@ -89,11 +93,33 @@ babel.init_app(app, locale_selector=get_locale)
 csrf = CSRFProtect(app)
 bootstrap = Bootstrap5(app)
 
-class ExportConfirmationForm(FlaskForm):    
+
+class ExportConfirmationForm(FlaskForm):
     agol_token = HiddenField()
     agol_project_id = HiddenField()
     session_id = HiddenField()
-    submit = SubmitField()
+    submit = SubmitField(label="Export Design to ArcGIS Online →")
+
+
+@app.route("/get_agol_processing_result", methods=["GET"])
+def get_agol_processing_result():
+    session_id = request.args.get("session_id", "0")
+    agol_processing_key = session_id + "_status"
+    print(agol_processing_key)
+    processing_result_exists = r.exists(agol_processing_key)
+    if processing_result_exists:
+        s = r.get(agol_processing_key)
+        agol_status = json.loads(s)
+    else:
+        agol_export_status = AGOLExportStatus(
+            status=0,
+            message="Failed to get result for the specified session",
+            success_url="",
+        )
+        agol_status = asdict(agol_export_status)
+
+    return Response(json.dumps(agol_status), status=200, mimetype=MIMETYPE)
+
 
 @app.route("/export/", methods=["GET", "POST"])
 def export_design():
@@ -115,10 +141,12 @@ def export_design():
 
         return Response(asdict(error_msg), status=400, mimetype=MIMETYPE)
 
-
     session_id = uuid.uuid4()
     export_confirmation_form = ExportConfirmationForm(
-        project_id=project_id, agol_token=agol_token, agol_project_id=agol_project_id, session_id = session_id
+        project_id=project_id,
+        agol_token=agol_token,
+        agol_project_id=agol_project_id,
+        session_id=session_id,
     )
 
     my_geodesignhub_downloader = GeodesignhubDataDownloader(
@@ -132,37 +160,44 @@ def export_design():
 
     if export_confirmation_form.validate_on_submit():
         diagram_upload_form_data = export_confirmation_form.data
-        
+
         agol_token = diagram_upload_form_data["agol_token"]
         agol_project_id = diagram_upload_form_data["agol_project_id"]
         session_id = diagram_upload_form_data["session_id"]
-        session_key = session_id + '_design'
-        
+        session_key = session_id + "_design"
+
         design_details_str = r.get(session_key)
-        
+
         _design_feature_collection = json.loads(design_details_str.decode("utf-8"))
-        _design_details_parsed = my_geodesignhub_downloader.parse_transform_geojson(design_feature_collection=_design_feature_collection['design_geojson'])
-        
-        _design_feature_collection['design_geojson']['geojson'] = _design_details_parsed
-        design_details =  from_dict(
-        data_class=GeodesignhubDataStorage,
-        data=_design_feature_collection,
+        _design_details_parsed = my_geodesignhub_downloader.parse_transform_geojson(
+            design_feature_collection=_design_feature_collection["design_geojson"]
         )
-        
-        agol_submission_payload = ExportToArcGISRequestPayload(agol_token = agol_token, agol_project_id=agol_project_id, gdh_design_details=design_details, session_id = session_id)
+
+        _design_feature_collection["design_geojson"]["geojson"] = _design_details_parsed
+        design_details = from_dict(
+            data_class=GeodesignhubDataStorage,
+            data=_design_feature_collection,
+        )
+
+        agol_submission_payload = ExportToArcGISRequestPayload(
+            agol_token=agol_token,
+            agol_project_id=agol_project_id,
+            gdh_design_details=design_details,
+            session_id=session_id,
+        )
         agol_submission_job = q.enqueue(
             utils.export_design_json_to_agol,
             agol_submission_payload,
             on_success=notify_agol_submission_success,
             on_failure=notify_agol_submission_failure,
-            job_id= session_id
+            job_id=session_id,
         )
 
         return redirect(
             url_for(
                 "redirect_after_export",
                 agol_token=agol_token,
-                session_id = session_id, 
+                session_id=session_id,
                 agol_project_id=agol_project_id,
                 status=1,
                 code=307,
@@ -171,23 +206,33 @@ def export_design():
 
     _design_feature_collection = (
         my_geodesignhub_downloader.download_design_data_from_geodesignhub()
-    )  
+    )
     gj_serialized = json.loads(geojson.dumps(_design_feature_collection))
 
     design_geojson = GeodesignhubDesignGeoJSON(geojson=gj_serialized)
-    _design_details = my_geodesignhub_downloader.download_design_details_from_geodesignhub()
-    design_details = from_dict(data_class = GeodesignhubDesignDetail, data = _design_details)
+    _design_details = (
+        my_geodesignhub_downloader.download_design_details_from_geodesignhub()
+    )
+    design_details = from_dict(
+        data_class=GeodesignhubDesignDetail, data=_design_details
+    )
     _design_name = design_details.description
-    
-    _num_features = len(gj_serialized['features'])
-    gdh_data_for_storage = GeodesignhubDataStorage(design_geojson = design_geojson, design_id = design_id, design_team_id = design_team_id, project_id = project_id, design_name = _design_name)
+
+    _num_features = len(gj_serialized["features"])
+    gdh_data_for_storage = GeodesignhubDataStorage(
+        design_geojson=design_geojson,
+        design_id=design_id,
+        design_team_id=design_team_id,
+        project_id=project_id,
+        design_name=_design_name,
+    )
     session_key = str(session_id) + "_design"
     # Cache it
     r.set(session_key, json.dumps(asdict(gdh_data_for_storage)))
     r.expire(session_key, time=60000)
 
-    confirmation_message = "Ready for migration"
-    message_type = MessageType.success
+    confirmation_message = "Design is ready for migration"
+    message_type = MessageType.primary
     export_confirmation_payload = ExportConfirmationPayload(
         agol_token=agol_token,
         agol_project_id=agol_project_id,
@@ -200,7 +245,9 @@ def export_design():
 
     return render_template(
         "export.html",
-        export_template_data=asdict(export_confirmation_payload, dict_factory=custom_asdict_factory),
+        export_template_data=asdict(
+            export_confirmation_payload, dict_factory=custom_asdict_factory
+        ),
         form=export_confirmation_form,
     )
 
@@ -213,7 +260,7 @@ def redirect_after_export():
     session_id = request.args["session_id"]
     agol_project_id = request.args["agol_project_id"]
     message = (
-        "Design Successfully exported to ArcGIS Online"
+        "Your design is being exported to ArcGIS Online..."
         if status
         else "Error in exporting the design, please contact your administrator"
     )
@@ -222,9 +269,10 @@ def redirect_after_export():
         op=status,
         message=message,
         agol_token=agol_token,
-        session_id = session_id, 
+        session_id=session_id,
         agol_project_id=agol_project_id,
     )
+
 
 @app.context_processor
 def inject_conf_var():

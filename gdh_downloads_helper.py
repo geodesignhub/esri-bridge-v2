@@ -164,8 +164,7 @@ class GeodesignhubDataDownloader:
         _all_features: List[Feature] = []
         for f in _design_details_feature_collection["features"]:
             _diagram_properties_raw = {}
-            _f_props = f["properties"]
-            print(_f_props)
+            _f_props = f["properties"]            
             _diagram_properties_raw["diagram_id"] = _f_props["diagramid"]
             _diagram_properties_raw["project_or_policy"] = _f_props["areatype"]
             _diagram_properties_raw["diagram_name"] = _f_props["description"]

@@ -3,28 +3,41 @@
 {% from "_formhelpers.html" import render_field %}
 {% block body %}
 <div class="container">
-    <!-- Example row of columns -->
+    <!-- Example row of columns -->     
     <div class="row">
-        <div class="p-4"></div>
+      <div class="p-4"></div>
+      <div class="col-md-12">
+          <h3>Geodesignhub → ArcGIS Online Data Export
+          <small class="text-muted">Design migration</small></h3>
+          <p>Use this form to confirm that you want to migrate your design to ArcGIS online. The design will appear in the "Content" view of your organization's page in ArcGIS Online.</p>       
+      </div>
+  </div>
+    <div class="row">
+      <div class="p-2"></div>
+      <h6>
+        Migration Status
+        <small class="text-body-secondary">Monitor submission to AGOL system</small>
+        <br><br>
+        {% if export_template_data.message %}
+        <div class="mb-3">
+          <div class="alert alert-{{export_template_data.message_type}}" role="alert">
+            {{export_template_data.message}}
+          </div>
+        </div>
+        {% endif %}
+      </h6>
+    </div>
+
+    <div class="row">
+        <div class="p-2"></div>
         <div class="col-md-12">
-            <h4>Geodesignhub → ArcGIS Online Data Export
-            <small class="text-muted">Export design data</small></h4>
-            <br>
-            {% if export_template_data.message %}
-            <div class="mb-3">
-              <div class="alert alert-{{export_template_data.message_type}}" role="alert">
-                {{export_template_data.message}}
-              </div>
-            </div>
-            {% endif %}
-            <br>
             <h5>Ready to export {{export_template_data.geodesignhub_design_name}}...</h5>
             <p>Please confirm that you want to export the design with <b>{{export_template_data.geodesignhub_design_feature_count}}</b> diagrams to ArcGIS Online. </p>
             {{ render_form(form) }}
          
         </div>
     </div>
-
+    
 </div>
 <!-- /container -->{% endblock %} 
 

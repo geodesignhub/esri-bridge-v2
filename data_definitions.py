@@ -197,3 +197,10 @@ class GeodesignhubProjectData:
     bounds: GeodesignhubProjectBounds
     center: GeodesignhubProjectCenter
     tags: GeodesignhubProjectTags
+
+
+@dataclass
+class AGOLExportStatus:
+    status: int
+    message: str
+    success_url: str
