@@ -33,7 +33,7 @@ class ArcGISHelper:
         gis = GIS("https://www.arcgis.com/", token=self.agol_token)
         return gis
 
-    def check_if_gis_object_exists(self, design_id: str, gis: GIS) -> bool:
+    def check_if_design_exists(self, design_id: str, gis: GIS) -> bool:
         object_already_exists = False
         search_results = gis.content.search(
             query=f"description:{design_id}", item_type="GeoJson"
@@ -51,7 +51,7 @@ def export_design_json_to_agol(submit_to_arcgis_request: ExportToArcGISRequestPa
     my_arcgis_helper = ArcGISHelper(agol_token=agol_token)
     gis = my_arcgis_helper.create_gis_object()
     design_id = _gdh_design_details.design_id
-    design_exists_in_profile = my_arcgis_helper.check_if_gis_object_exists(
+    design_exists_in_profile = my_arcgis_helper.check_if_design_exists(
         gis=gis, design_id=design_id
     )
     submission_processing_result_key = "{session_id}_status".format(
@@ -90,6 +90,5 @@ def export_design_json_to_agol(submit_to_arcgis_request: ExportToArcGISRequestPa
         agol_export_status.message = (
             "Successfully created Feature Layer on ArcGIS Online"
         )
-    print(submission_processing_result_key)
     r.set(submission_processing_result_key, json.dumps(asdict(agol_export_status)))
     r.expire(submission_processing_result_key, time=6000)
