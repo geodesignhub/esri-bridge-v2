@@ -174,6 +174,7 @@ class GeodesignhubDataDownloader:
             _diagram_properties_raw["start_date"] = _f_props["start_date"]
             _diagram_properties_raw["end_date"] = _f_props["end_date"]
             _diagram_properties_raw["grid_location"] = _f_props["grid_location"]                      
+            _diagram_properties_raw["system_name"] = _f_props["sysname"]                      
 
             _feature_properties = from_dict(
                 data_class=GeodesignhubFeatureProperties, data=_diagram_properties_raw
