@@ -22,7 +22,7 @@ class GeodesignhubDiagramGeoJSON:
 
 @dataclass
 class ErrorResponse:
-    # A class to hold error resposnes
+    # A class to hold error responses
     message: str
     code: int
     status: int
@@ -132,11 +132,9 @@ class GeodesignhubDataStorage:
 
 
 @dataclass
-class ExportToArcGISRequestPayload:
-    agol_token: str
-    agol_project_id: str
+class ArcGISDesignPayload:
     gdh_design_details: GeodesignhubDataStorage
-    session_id: str
+
 
 
 @dataclass
@@ -182,7 +180,6 @@ class GeodesignhubProjectTag:
 
 @dataclass
 class GeodesignhubProjectTags:
-
     tags: List[GeodesignhubProjectTag]
 
 
@@ -205,3 +202,11 @@ class AGOLExportStatus:
     status: int
     message: str
     success_url: str
+
+@dataclass
+class AGOLSubmissionPayload:
+    design_data: GeodesignhubDataStorage
+    tags_data: GeodesignhubProjectTags
+    agol_token: str
+    agol_project_id: str
+    session_id: str

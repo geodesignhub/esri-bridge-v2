@@ -9,7 +9,9 @@ from data_definitions import (
     GeodesignhubDesignDetail,
     GeodesignhubDataStorage,
     GeodesignhubDesignGeoJSON,
-    ExportToArcGISRequestPayload,
+    ArcGISDesignPayload,
+    AGOLSubmissionPayload,
+    GeodesignhubProjectTags,
 )
 from notifications_helper import (
     notify_agol_submission_success,
@@ -165,8 +167,15 @@ def export_design():
         agol_project_id = diagram_upload_form_data["agol_project_id"]
         session_id = diagram_upload_form_data["session_id"]
         session_key = session_id + "_design"
-
         design_details_str = r.get(session_key)
+
+        tags_key = session_id + "_tags"
+
+        project_tags_str = r.get(tags_key)
+        _all_project_tags = json.loads(project_tags_str.decode("utf-8"))
+        project_tags_parsed = from_dict(
+            data_class=GeodesignhubProjectTags, data=_all_project_tags
+        )
 
         _design_feature_collection = json.loads(design_details_str.decode("utf-8"))
         _design_details_parsed = my_geodesignhub_downloader.parse_transform_geojson(
@@ -179,14 +188,20 @@ def export_design():
             data=_design_feature_collection,
         )
 
-        agol_submission_payload = ExportToArcGISRequestPayload(
+        agol_design_submission = ArcGISDesignPayload(
+            gdh_design_details=design_details,
+        )
+
+        agol_submission_payload = AGOLSubmissionPayload(
+            design_data=agol_design_submission,
+            tags_data=project_tags_parsed,
             agol_token=agol_token,
             agol_project_id=agol_project_id,
-            gdh_design_details=design_details,
             session_id=session_id,
         )
+
         agol_submission_job = q.enqueue(
-            utils.export_design_json_to_agol,
+            utils.export_design_and_tags_to_agol,
             agol_submission_payload,
             on_success=notify_agol_submission_success,
             on_failure=notify_agol_submission_failure,
@@ -213,10 +228,14 @@ def export_design():
     _design_details = (
         my_geodesignhub_downloader.download_design_details_from_geodesignhub()
     )
+    _project_tags = my_geodesignhub_downloader.download_project_tags()
     design_details = from_dict(
         data_class=GeodesignhubDesignDetail, data=_design_details
     )
     _design_name = design_details.description
+    
+
+    project_tags = from_dict(data_class=GeodesignhubProjectTags, data=_project_tags)
 
     _num_features = len(gj_serialized["features"])
     gdh_data_for_storage = GeodesignhubDataStorage(
@@ -230,6 +249,10 @@ def export_design():
     # Cache it
     r.set(session_key, json.dumps(asdict(gdh_data_for_storage)))
     r.expire(session_key, time=60000)
+    tags_storage_key = str(session_id) + "_tags"
+    # Cache it
+    r.set(tags_storage_key, json.dumps(asdict(project_tags)))
+    r.expire(tags_storage_key, time=60000)
 
     confirmation_message = "Design is ready for migration"
     message_type = MessageType.primary

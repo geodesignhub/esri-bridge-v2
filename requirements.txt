@@ -18,3 +18,4 @@ flask-wtf==1.2.1
 Bootstrap-Flask==2.4.0
 arcgis==2.3.0.2
 Flask-SSE==1.0.0
+pandas==2.2.2

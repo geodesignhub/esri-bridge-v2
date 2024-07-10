@@ -46,7 +46,7 @@
         let job_key = data['job_id'];
         let session_id = job_key.split(':')[0];
         if (session_id === room) {
-            let session_processing_url = window.location.origin + '/gdh_generated_shadow?shadow_key=' + session_id;
+            let session_processing_url = window.location.origin + '/get_agol_processing_result?session_id=' + session_id;
             get_agol_processing_results(session_processing_url);
         }
     }, false);
@@ -78,8 +78,9 @@
                     status_ele.classList.add('alert-success');
                 }
             }).catch((error) => {
+                console.log(error)
                 let status_ele = document.getElementById("latest_update");
-                status_ele.innerHTML = "Failed to get results from the Bridge";
+                status_ele.innerHTML = "Failed to get results from the bridge";
             });
     }
 
