@@ -59,6 +59,13 @@
             })
             .then((agol_processing_response) => {
 
+                let status_ele = document.getElementById("latest_update");
+                
+                status_ele.innerHTML = "";
+                let span = document.createElement('span');
+                span.innerHTML = agol_processing_response.message;
+
+                status_ele.appendChild(span);
                 if (agol_processing_response.status == 0) {
                     status_ele.classList.add('alert-warning');
                 }
@@ -69,10 +76,6 @@
                     a.href = agol_processing_response.success_url;
                     a.innerHTML = "see the layer on ArcGIS ↗"
                     a.target = "_blank"
-                    let span = document.createElement('span');
-                    span.innerHTML = agol_processing_response.message;
-                    let status_ele = document.getElementById("latest_update");
-                    status_ele.innerHTML = "";
                     status_ele.appendChild(span);
                     status_ele.appendChild(nbsp);
                     status_ele.appendChild(a);
@@ -80,6 +83,7 @@
             }).catch((error) => {
                 // console.log(error)
                 let status_ele = document.getElementById("latest_update");
+                status_ele.classList.add('alert-error');
                 status_ele.innerHTML = "Failed to get results from the bridge";
             });
     }
