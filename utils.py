@@ -16,7 +16,6 @@ import logging
 import tempfile
 import os
 import pandas as pd
-
 logger = logging.getLogger("esri-gdh-bridge")
 from dotenv import load_dotenv, find_dotenv
 
@@ -110,7 +109,7 @@ class ArcGISHelper:
             gis=self.gis, project_id=project_id
         )
         if tags_exist_in_profile:
-            logger.info("Design already exists in profile, it cannot be  re-uploaded")
+            logger.info("Design already exists in profile, it cannot be re-uploaded")
             return 0
 
         else:
@@ -127,7 +126,7 @@ class ArcGISHelper:
             published_item = csv_item.publish()
             return published_item
 
-    def export_design_json_to_agol(self, design_data: ArcGISDesignPayload):
+    def export_design_json_to_agol(self, design_data: ArcGISDesignPayload)-> Item:
 
         _gdh_design_details = design_data.gdh_design_details
         design_id = _gdh_design_details.design_id

@@ -38,6 +38,7 @@ from flask_bootstrap import Bootstrap5
 from wtforms import SubmitField, HiddenField
 import logging
 from logging.config import dictConfig
+import re
 
 load_dotenv(find_dotenv())
 ENV_FILE = find_dotenv()
@@ -107,7 +108,7 @@ class ExportConfirmationForm(FlaskForm):
 def get_agol_processing_result():
     session_id = request.args.get("session_id", "0")
     agol_processing_key = session_id + "_status"
-    print(agol_processing_key)
+    
     processing_result_exists = r.exists(agol_processing_key)
     if processing_result_exists:
         s = r.get(agol_processing_key)
@@ -233,7 +234,8 @@ def export_design():
         data_class=GeodesignhubDesignDetail, data=_design_details
     )
     _design_name = design_details.description
-    
+    # Make the design name only alpha numeric since AGOL only supports alpha-numeric names
+    _design_name = re.sub('[^0-9a-zA-Z]+', '_', _design_name)
 
     project_tags = from_dict(data_class=GeodesignhubProjectTags, data=_project_tags)
 
