@@ -7,7 +7,10 @@ from data_definitions import (
     AGOLExportStatus,
     AGOLSubmissionPayload,
     GeodesignhubProjectTags,
+    AllSystemDetails,
 )
+
+from PIL import ImageColor
 import geojson
 from geojson import FeatureCollection
 import json
@@ -16,6 +19,7 @@ import logging
 import tempfile
 import os
 import pandas as pd
+
 logger = logging.getLogger("esri-gdh-bridge")
 from dotenv import load_dotenv, find_dotenv
 
@@ -34,7 +38,8 @@ def export_design_and_tags_to_agol(agol_submission_payload: AGOLSubmissionPayloa
     agol_export_status = AGOLExportStatus(status=0, message="", success_url="")
 
     submission_status_details = my_arc_gis_helper.export_design_json_to_agol(
-        design_data=agol_submission_payload.design_data
+        design_data=agol_submission_payload.design_data,
+        gdh_systems_information=agol_submission_payload.gdh_systems_information,
     )
 
     if submission_status_details == 0:
@@ -46,7 +51,11 @@ def export_design_and_tags_to_agol(agol_submission_payload: AGOLSubmissionPayloa
         agol_export_status.message = (
             "Successfully created Feature Layer on ArcGIS Online"
         )
-    logger.info("Found {num_tags} tags in Geodesignhub".format(num_tags=len(agol_submission_payload.tags_data.tags)))
+    logger.info(
+        "Found {num_tags} tags in Geodesignhub".format(
+            num_tags=len(agol_submission_payload.tags_data.tags)
+        )
+    )
     if len(agol_submission_payload.tags_data.tags):
         my_arc_gis_helper.export_project_tags_to_agol(
             tags_data=agol_submission_payload.tags_data,
@@ -126,9 +135,52 @@ class ArcGISHelper:
             published_item = csv_item.publish()
             return published_item
 
-    def export_design_json_to_agol(self, design_data: ArcGISDesignPayload)-> Item:
+    def get_agol_rendering_settings(self, gdh_project_systems: AllSystemDetails):
+        unique_value_infos = []
+        for project_system in gdh_project_systems.systems:
+            system_id = project_system.id
+            name = project_system.name
+            verbose_description = project_system.verbose_description
+            color = project_system.color
+            unique_value_infos.append(
+                {
+                    "value": name,
+                    "label": name,  # or verbose_description if available
+                    "description": verbose_description,  # or verbose_description if available
+                    "symbol": {
+                        "type": "esriSFS",
+                        "style": "esriSFSSolid",
+                        "color": ImageColor.getcolor(color, "RGBA"),
+                        "outline": None,
+                    },
+                }
+            )
+
+        #
+        # create unique value renderer
+        # - assuming field called sysname is part of new layer
+        #
+        uv_renderer = {
+            "type": "uniqueValue",
+            "field1": "name",
+            "field2": "",
+            "field3": "",
+            "fieldDelimiter": ",",
+            "defaultSymbol": None,
+            "defaultLabel": "Other System",
+            "uniqueValueInfos": unique_value_infos,
+        }
+
+        return uv_renderer
+
+    def export_design_json_to_agol(
+        self,
+        design_data: ArcGISDesignPayload,
+        gdh_systems_information: AllSystemDetails,
+    ) -> Item:
 
         _gdh_design_details = design_data.gdh_design_details
+        _gdh_project_systems = gdh_systems_information
         design_id = _gdh_design_details.design_id
 
         design_exists_in_profile = self.check_if_design_exists(
@@ -159,4 +211,18 @@ class ArcGISHelper:
             output.delete = True
 
             feature_layer_item = geojson_item.publish(file_type="geojson")
+            # the layer
+            logger.info("Layer is published as Feature Collection")
+            logger.info("Getting the published feature layer...")
+            new_published_layer = feature_layer_item.layers[0]
+            logger.info("Getting the layer manager...")
+            new_published_manager = new_published_layer.manager
+            logger.info("Update layer renderer...")
+            uv_renderer = self.get_agol_rendering_settings(
+                gdh_project_systems=_gdh_project_systems
+            )
+            new_published_manager.update_definition(
+                {"drawingInfo": {"renderer": uv_renderer}}
+            )
+
             return feature_layer_item

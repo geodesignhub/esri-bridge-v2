@@ -12,6 +12,7 @@ from data_definitions import (
     ArcGISDesignPayload,
     AGOLSubmissionPayload,
     GeodesignhubProjectTags,
+    AllSystemDetails
 )
 from notifications_helper import (
     notify_agol_submission_success,
@@ -108,7 +109,7 @@ class ExportConfirmationForm(FlaskForm):
 def get_agol_processing_result():
     session_id = request.args.get("session_id", "0")
     agol_processing_key = session_id + "_status"
-    
+
     processing_result_exists = r.exists(agol_processing_key)
     if processing_result_exists:
         s = r.get(agol_processing_key)
@@ -159,6 +160,7 @@ def export_design():
         cteam_id=design_team_id,
         apitoken=apitoken,
     )
+    _gdh_systems_raw = my_geodesignhub_downloader.download_project_systems()
     logger.info("INFO: Inside the home function")
 
     if export_confirmation_form.validate_on_submit():
@@ -192,13 +194,14 @@ def export_design():
         agol_design_submission = ArcGISDesignPayload(
             gdh_design_details=design_details,
         )
-
+        _gdh_systems = AllSystemDetails(systems=_gdh_systems_raw)
         agol_submission_payload = AGOLSubmissionPayload(
             design_data=agol_design_submission,
             tags_data=project_tags_parsed,
             agol_token=agol_token,
             agol_project_id=agol_project_id,
             session_id=session_id,
+            gdh_systems_information=_gdh_systems,
         )
 
         agol_submission_job = q.enqueue(
@@ -235,7 +238,7 @@ def export_design():
     )
     _design_name = design_details.description
     # Make the design name only alpha numeric since AGOL only supports alpha-numeric names
-    _design_name = re.sub('[^0-9a-zA-Z]+', '_', _design_name)
+    _design_name = re.sub("[^0-9a-zA-Z]+", "_", _design_name)
 
     project_tags = from_dict(data_class=GeodesignhubProjectTags, data=_project_tags)
 
