@@ -9,7 +9,6 @@ from data_definitions import (
     GeodesignhubProjectTags,
     AllSystemDetails,
 )
-
 from PIL import ImageColor
 import geojson
 from geojson import FeatureCollection
@@ -135,43 +134,63 @@ class ArcGISHelper:
             published_item = csv_item.publish()
             return published_item
 
-    def get_agol_rendering_settings(self, gdh_project_systems: AllSystemDetails):
+    def create_uv_infos(
+        self, gdh_project_systems: AllSystemDetails, geometry_type: str
+    ):
+        """Create unique value information for AGOL"""
         unique_value_infos = []
         for project_system in gdh_project_systems.systems:
             system_id = project_system.id
             name = project_system.name
             verbose_description = project_system.verbose_description
             color = project_system.color
+            _symbol = self.create_symbol(geometry_type, color)
             unique_value_infos.append(
                 {
                     "value": name,
                     "label": name,  # or verbose_description if available
                     "description": verbose_description,  # or verbose_description if available
-                    "symbol": {
-                        "type": "esriSFS",
-                        "style": "esriSFSSolid",
-                        "color": ImageColor.getcolor(color, "RGBA"),
-                        "outline": None,
-                    },
+                    "symbol": _symbol,
                 }
             )
 
-        #
-        # create unique value renderer
-        # - assuming field called sysname is part of new layer
-        #
-        uv_renderer = {
+        return unique_value_infos
+
+    def create_symbol(self, geometry_type: str, symbol_color: str):
+        """Create a symbol for AGOL"""
+        _symbol_type_by_geometry = {
+            "esriGeometryPolygon": "esriSFS",
+            "esriGeometryPolyline": "esriSLS",
+            "esriGeometryPoint": "esriSMS",
+        }
+        _symbol_type = _symbol_type_by_geometry[geometry_type]
+        return {
+            "type": _symbol_type,
+            "style": "esriSFSSolid",
+            "color": ImageColor.getcolor(symbol_color, "RGBA"),
+            "outline": None,
+        }
+
+    def create_uv_renderer(
+        self,
+        geometry_type: str,
+        unique_field_name: str,
+        gdh_project_systems: AllSystemDetails,
+    ):
+        """Create a renderer based on the field and system details"""
+        _uv_infos = self.create_uv_infos(gdh_project_systems, geometry_type)
+        return {
             "type": "uniqueValue",
-            "field1": "name",
+            "field1": unique_field_name,
             "field2": "",
             "field3": "",
             "fieldDelimiter": ",",
-            "defaultSymbol": None,
+            "defaultSymbol": self.create_symbol(
+                geometry_type=geometry_type, symbol_color="#cccccc"
+            ),
             "defaultLabel": "Other System",
-            "uniqueValueInfos": unique_value_infos,
+            "uniqueValueInfos": _uv_infos,
         }
-
-        return uv_renderer
 
     def export_design_json_to_agol(
         self,
@@ -214,15 +233,28 @@ class ArcGISHelper:
             # the layer
             logger.info("Layer is published as Feature Collection")
             logger.info("Getting the published feature layer...")
-            new_published_layer = feature_layer_item.layers[0]
-            logger.info("Getting the layer manager...")
-            new_published_manager = new_published_layer.manager
-            logger.info("Update layer renderer...")
-            uv_renderer = self.get_agol_rendering_settings(
-                gdh_project_systems=_gdh_project_systems
-            )
-            new_published_manager.update_definition(
-                {"drawingInfo": {"renderer": uv_renderer}}
-            )
+            new_published_layers = feature_layer_item.layers
+
+            for new_published_layer in new_published_layers:
+                logger.info(
+                    f"{new_published_layer.properties.name} - {new_published_layer.properties.geometryType}"
+                )
+
+                logger.info("Getting the layer manager...")
+                # the layer manager
+                test_layer_manager = new_published_layer.manager
+                # update layer rederer
+                logger.info("Update layer renderer...")
+                test_layer_manager.update_definition(
+                    {
+                        "drawingInfo": {
+                            "renderer": self.create_uv_renderer(
+                                geometry_type=new_published_layer.properties.geometryType,
+                                unique_field_name="system_name",
+                                gdh_project_systems=_gdh_project_systems,
+                            )
+                        }
+                    }
+                )
 
             return feature_layer_item
