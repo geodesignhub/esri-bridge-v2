@@ -156,18 +156,20 @@ class ArcGISHelper:
 
         return unique_value_infos
 
-    def create_symbol(self, geometry_type: str, symbol_color: str):
+    def create_symbol(self, geometry_type, symbol_color, opacity=0.5):
         """Create a symbol for AGOL"""
         _symbol_type_by_geometry = {
             "esriGeometryPolygon": "esriSFS",
             "esriGeometryPolyline": "esriSLS",
             "esriGeometryPoint": "esriSMS",
         }
+        (r, g, b) = ImageColor.getcolor(symbol_color)
+        alpha = opacity * 255
         _symbol_type = _symbol_type_by_geometry[geometry_type]
         return {
             "type": _symbol_type,
             "style": "esriSFSSolid",
-            "color": ImageColor.getcolor(symbol_color, "RGBA"),
+            "color": f"rgba({r},{g},{b},{alpha})",
             "outline": None,
         }
 
