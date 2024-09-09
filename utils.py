@@ -8,6 +8,7 @@ from data_definitions import (
     AGOLSubmissionPayload,
     GeodesignhubProjectTags,
     AllSystemDetails,
+    AGOLFeatureLayerPublishingResponse,
 )
 from PIL import ImageColor
 import geojson
@@ -18,6 +19,7 @@ import logging
 import tempfile
 import os
 import pandas as pd
+from arcgis.mapping import WebMap
 
 logger = logging.getLogger("esri-gdh-bridge")
 from dotenv import load_dotenv, find_dotenv
@@ -30,7 +32,7 @@ if ENV_FILE:
 r = get_redis()
 
 
-def export_design_and_tags_to_agol(agol_submission_payload: AGOLSubmissionPayload):
+def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
     """This method one by one submits the designs and the tags data to AGOL"""
     agol_token = agol_submission_payload.agol_token
     my_arc_gis_helper = ArcGISHelper(agol_token)
@@ -41,7 +43,7 @@ def export_design_and_tags_to_agol(agol_submission_payload: AGOLSubmissionPayloa
         gdh_systems_information=agol_submission_payload.gdh_systems_information,
     )
 
-    if submission_status_details == 0:
+    if submission_status_details.status == 0:
         agol_export_status.status = 0
         agol_export_status.message = "A design with the same ID already exists in your profile in ArcGIS Online, you must delete that first in ArcGIS Online and try the migration again."
     else:
@@ -63,6 +65,7 @@ def export_design_and_tags_to_agol(agol_submission_payload: AGOLSubmissionPayloa
         submission_processing_result_key = "{session_id}_status".format(
             session_id=agol_submission_payload.session_id
         )
+
     r.set(submission_processing_result_key, json.dumps(asdict(agol_export_status)))
     r.expire(submission_processing_result_key, time=6000)
 
@@ -198,7 +201,7 @@ class ArcGISHelper:
         self,
         design_data: ArcGISDesignPayload,
         gdh_systems_information: AllSystemDetails,
-    ) -> Item:
+    ) -> AGOLFeatureLayerPublishingResponse:
 
         _gdh_design_details = design_data.gdh_design_details
         _gdh_project_systems = gdh_systems_information
@@ -209,7 +212,7 @@ class ArcGISHelper:
         )
         if design_exists_in_profile:
             logger.info("Design already exists in profile, it cannot be  re-uploaded")
-            return 0
+            return AGOLFeatureLayerPublishingResponse(status=0, item=None, url="")
 
         else:
             _gdh_design_feature_collection: FeatureCollection = (
@@ -232,11 +235,13 @@ class ArcGISHelper:
             output.delete = True
 
             feature_layer_item = geojson_item.publish(file_type="geojson")
+            feature_layer_item_url = feature_layer_item.url
             # the layer
             logger.info("Layer is published as Feature Collection")
             logger.info("Getting the published feature layer...")
             new_published_layers = feature_layer_item.layers
 
+            wm = WebMap()
             for new_published_layer in new_published_layers:
                 logger.info(
                     f"{new_published_layer.properties.name} - {new_published_layer.properties.geometryType}"
@@ -258,5 +263,21 @@ class ArcGISHelper:
                         }
                     }
                 )
+                wm.add_layer(new_published_layer)
 
-            return feature_layer_item
+            web_map_title = (
+                "Webmap for {design_name} in Geodesignhub {project_name}".format(
+                    design_name=_gdh_design_details.design_name,
+                    project_name=_gdh_design_details.project_id,
+                )
+            )
+            web_map_properties = {
+                "title": web_map_title,
+                "snippet": "This map shows design synthesis details from a negotiation in Geodesignhub",
+                "tags": "Geodesignhub",
+            }
+
+            # Call the save() with web map item's properties.
+            web_map_item = wm.save(item_properties=web_map_properties)
+
+            return AGOLFeatureLayerPublishingResponse(status=1, item=Item, url = feature_layer_item_url)

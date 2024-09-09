@@ -205,7 +205,7 @@ def export_design():
         )
 
         agol_submission_job = q.enqueue(
-            utils.export_design_and_tags_to_agol,
+            utils.publish_design_to_agol,
             agol_submission_payload,
             on_success=notify_agol_submission_success,
             on_failure=notify_agol_submission_failure,

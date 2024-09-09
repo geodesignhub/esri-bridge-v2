@@ -1,7 +1,9 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
 from geojson import FeatureCollection
 from enum import Enum
+from arcgis.gis import Item
+from arcgis.mapping import WebMap
 
 
 def custom_asdict_factory(data):
@@ -136,7 +138,6 @@ class ArcGISDesignPayload:
     gdh_design_details: GeodesignhubDataStorage
 
 
-
 @dataclass
 class GeodesignhubSystem:
     # Source: https://www.geodesignhub.com/api/#systems-api-systems-collection-get
@@ -166,7 +167,6 @@ class AllSystemDetails:
 
 @dataclass
 class GeodesignhubProjectBounds:
-
     bounds: str
 
 
@@ -204,6 +204,7 @@ class AGOLExportStatus:
     message: str
     success_url: str
 
+
 @dataclass
 class AGOLSubmissionPayload:
     design_data: GeodesignhubDataStorage
@@ -212,3 +213,16 @@ class AGOLSubmissionPayload:
     agol_project_id: str
     session_id: str
     gdh_systems_information: AllSystemDetails
+
+
+@dataclass
+class AGOLFeatureLayerPublishingResponse:
+    status: int
+    item: Union[None, Item]
+    url:str
+
+
+@dataclass
+class AGOLWebMapPublishingResponse:
+    status: int
+    item: Union[None, WebMap]
