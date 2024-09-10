@@ -66,6 +66,13 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
             session_id=agol_submission_payload.session_id
         )
 
+    # Create a web map and publish it
+    if submission_status_details.status:
+        my_arc_gis_helper.publish_feature_layer_as_webmap(
+            feature_layer_item=submission_status_details.item,
+            design_data=agol_submission_payload.design_data,
+        )
+
     r.set(submission_processing_result_key, json.dumps(asdict(agol_export_status)))
     r.expire(submission_processing_result_key, time=6000)
 
@@ -197,6 +204,33 @@ class ArcGISHelper:
             "uniqueValueInfos": _uv_infos,
         }
 
+    def publish_feature_layer_as_webmap(
+        self, feature_layer_item: Item, design_data: ArcGISDesignPayload
+    ):
+        print(dir(feature_layer_item.items))
+        print(feature_layer_item.items)
+        _gdh_design_details = design_data.gdh_design_details
+        logger.info("Getting the published feature layer...")
+        new_published_layers = feature_layer_item.items
+        wm = WebMap()
+        for new_published_layer in new_published_layers:
+            wm.add_layer(new_published_layer)
+
+        web_map_title = (
+            "Webmap for {design_name} in Geodesignhub {project_name}".format(
+                design_name=_gdh_design_details.design_name,
+                project_name=_gdh_design_details.project_id,
+            )
+        )
+        web_map_properties = {
+            "title": web_map_title,
+            "snippet": "This map shows design synthesis details from a negotiation in Geodesignhub",
+            "tags": "Geodesignhub",
+        }
+
+        # Call the save() with web map item's properties.
+        web_map_item = wm.save(item_properties=web_map_properties)
+
     def export_design_json_to_agol(
         self,
         design_data: ArcGISDesignPayload,
@@ -241,7 +275,6 @@ class ArcGISHelper:
             logger.info("Getting the published feature layer...")
             new_published_layers = feature_layer_item.layers
 
-            wm = WebMap()
             for new_published_layer in new_published_layers:
                 logger.info(
                     f"{new_published_layer.properties.name} - {new_published_layer.properties.geometryType}"
@@ -250,7 +283,7 @@ class ArcGISHelper:
                 logger.info("Getting the layer manager...")
                 # the layer manager
                 test_layer_manager = new_published_layer.manager
-                # update layer rederer
+                # update layer renderer
                 logger.info("Update layer renderer...")
                 test_layer_manager.update_definition(
                     {
@@ -263,21 +296,7 @@ class ArcGISHelper:
                         }
                     }
                 )
-                wm.add_layer(new_published_layer)
 
-            web_map_title = (
-                "Webmap for {design_name} in Geodesignhub {project_name}".format(
-                    design_name=_gdh_design_details.design_name,
-                    project_name=_gdh_design_details.project_id,
-                )
+            return AGOLFeatureLayerPublishingResponse(
+                status=1, item=Item, url=feature_layer_item_url
             )
-            web_map_properties = {
-                "title": web_map_title,
-                "snippet": "This map shows design synthesis details from a negotiation in Geodesignhub",
-                "tags": "Geodesignhub",
-            }
-
-            # Call the save() with web map item's properties.
-            web_map_item = wm.save(item_properties=web_map_properties)
-
-            return AGOLFeatureLayerPublishingResponse(status=1, item=Item, url = feature_layer_item_url)

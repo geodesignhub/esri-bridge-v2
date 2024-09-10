@@ -219,7 +219,7 @@ class AGOLSubmissionPayload:
 class AGOLFeatureLayerPublishingResponse:
     status: int
     item: Union[None, Item]
-    url:str
+    url: str
 
 
 @dataclass

@@ -12,7 +12,7 @@ from data_definitions import (
     ArcGISDesignPayload,
     AGOLSubmissionPayload,
     GeodesignhubProjectTags,
-    AllSystemDetails
+    AllSystemDetails,
 )
 from notifications_helper import (
     notify_agol_submission_success,
@@ -210,6 +210,7 @@ def export_design():
             on_success=notify_agol_submission_success,
             on_failure=notify_agol_submission_failure,
             job_id=session_id,
+            job_timeout=3600
         )
 
         return redirect(
