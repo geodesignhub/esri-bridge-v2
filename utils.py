@@ -143,6 +143,10 @@ class ArcGISHelper:
 
             published_item = csv_item.publish()
             return published_item
+        
+    def create_story_map(self):
+        """This method create a storymap from the YAML template"""
+        pass
 
     def create_uv_infos(
         self, gdh_project_systems: AllSystemDetails, geometry_type: str
@@ -207,11 +211,9 @@ class ArcGISHelper:
     def publish_feature_layer_as_webmap(
         self, feature_layer_item: Item, design_data: ArcGISDesignPayload
     ):
-        print(dir(feature_layer_item.items))
-        print(feature_layer_item.items)
         _gdh_design_details = design_data.gdh_design_details
         logger.info("Getting the published feature layer...")
-        new_published_layers = feature_layer_item.items
+        new_published_layers = feature_layer_item.layers
         wm = WebMap()
         for new_published_layer in new_published_layers:
             wm.add_layer(new_published_layer)
@@ -298,5 +300,5 @@ class ArcGISHelper:
                 )
 
             return AGOLFeatureLayerPublishingResponse(
-                status=1, item=Item, url=feature_layer_item_url
+                status=1, item=feature_layer_item, url=feature_layer_item_url
             )
