@@ -1,5 +1,6 @@
 from arcgis.gis import GIS, Item
 from conn import get_redis
+import time
 from typing import Union
 from data_definitions import (
     ArcGISDesignPayload,
@@ -20,6 +21,7 @@ import tempfile
 import os
 import pandas as pd
 from arcgis.mapping import WebMap
+from storymap_helper import StoryMapPublisher
 
 logger = logging.getLogger("esri-gdh-bridge")
 from dotenv import load_dotenv, find_dotenv
@@ -57,22 +59,32 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
             num_tags=len(agol_submission_payload.tags_data.tags)
         )
     )
-    if len(agol_submission_payload.tags_data.tags):
-        my_arc_gis_helper.export_project_tags_to_agol(
-            tags_data=agol_submission_payload.tags_data,
-            project_id=agol_submission_payload.design_data.gdh_design_details.project_id,
-        )
-        submission_processing_result_key = "{session_id}_status".format(
-            session_id=agol_submission_payload.session_id
-        )
+    # if len(agol_submission_payload.tags_data.tags):
+    #     my_arc_gis_helper.export_project_tags_to_agol(
+    #         tags_data=agol_submission_payload.tags_data,
+    #         project_id=agol_submission_payload.design_data.gdh_design_details.project_id,
+    #     )
+    submission_processing_result_key = "{session_id}_status".format(
+        session_id=agol_submission_payload.session_id
+    )
 
     # Create a web map and publish it
     if submission_status_details.status:
-        my_arc_gis_helper.publish_feature_layer_as_webmap(
+        # Sleep for 10 seconds to allow for layers to be updated
+        # logging.info("Sleeping for 15 seconds to allow for publishing...")
+        # time.sleep(15)
+        my_webmap_item = my_arc_gis_helper.publish_feature_layer_as_webmap(
             feature_layer_item=submission_status_details.item,
             design_data=agol_submission_payload.design_data,
         )
-
+        my_storymap_publisher = StoryMapPublisher(
+            design_data=agol_submission_payload.design_data,
+            gdh_systems_information=agol_submission_payload.gdh_systems_information,
+            negotiated_design_item_id=my_webmap_item.itemid,
+            gis = my_arc_gis_helper.get_gis()
+        )
+        my_storymap_publisher.publish_storymap()
+        
     r.set(submission_processing_result_key, json.dumps(asdict(agol_export_status)))
     r.expire(submission_processing_result_key, time=6000)
 
@@ -81,6 +93,9 @@ class ArcGISHelper:
     def __init__(self, agol_token: str):
         self.agol_token = agol_token
         self.gis = self.create_gis_object()
+
+    def get_gis(self)->GIS:
+        return self.gis
 
     def create_gis_object(self) -> GIS:
         gis = GIS("https://www.arcgis.com/", token=self.agol_token)
@@ -143,10 +158,7 @@ class ArcGISHelper:
 
             published_item = csv_item.publish()
             return published_item
-        
-    def create_story_map(self):
-        """This method create a storymap from the YAML template"""
-        pass
+
 
     def create_uv_infos(
         self, gdh_project_systems: AllSystemDetails, geometry_type: str
@@ -210,7 +222,7 @@ class ArcGISHelper:
 
     def publish_feature_layer_as_webmap(
         self, feature_layer_item: Item, design_data: ArcGISDesignPayload
-    ):
+    )->Item:
         _gdh_design_details = design_data.gdh_design_details
         logger.info("Getting the published feature layer...")
         new_published_layers = feature_layer_item.layers
@@ -219,9 +231,8 @@ class ArcGISHelper:
             wm.add_layer(new_published_layer)
 
         web_map_title = (
-            "Webmap for {design_name} in Geodesignhub {project_name}".format(
-                design_name=_gdh_design_details.design_name,
-                project_name=_gdh_design_details.project_id,
+            "Webmap for {design_name}".format(
+                design_name=_gdh_design_details.design_name
             )
         )
         web_map_properties = {
@@ -232,6 +243,7 @@ class ArcGISHelper:
 
         # Call the save() with web map item's properties.
         web_map_item = wm.save(item_properties=web_map_properties)
+        return web_map_item
 
     def export_design_json_to_agol(
         self,

@@ -1,0 +1,14 @@
+---
+name: Default Geodesignhub story map
+panels: 
+    - toc
+    - study_area
+    - photos
+    - negotiated_design
+    - acknowledgements
+project_metadata: 
+  project_basic_details:
+    - title
+    - bounds 
+    - description
+  systems:
