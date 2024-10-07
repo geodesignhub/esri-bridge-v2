@@ -81,10 +81,10 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
             design_data=agol_submission_payload.design_data,
             gdh_systems_information=agol_submission_payload.gdh_systems_information,
             negotiated_design_item_id=my_webmap_item.itemid,
-            gis = my_arc_gis_helper.get_gis()
+            gis=my_arc_gis_helper.get_gis(),
         )
         my_storymap_publisher.publish_storymap()
-        
+
     r.set(submission_processing_result_key, json.dumps(asdict(agol_export_status)))
     r.expire(submission_processing_result_key, time=6000)
 
@@ -94,7 +94,7 @@ class ArcGISHelper:
         self.agol_token = agol_token
         self.gis = self.create_gis_object()
 
-    def get_gis(self)->GIS:
+    def get_gis(self) -> GIS:
         return self.gis
 
     def create_gis_object(self) -> GIS:
@@ -159,7 +159,6 @@ class ArcGISHelper:
             published_item = csv_item.publish()
             return published_item
 
-
     def create_uv_infos(
         self, gdh_project_systems: AllSystemDetails, geometry_type: str
     ):
@@ -222,7 +221,7 @@ class ArcGISHelper:
 
     def publish_feature_layer_as_webmap(
         self, feature_layer_item: Item, design_data: ArcGISDesignPayload
-    )->Item:
+    ) -> Item:
         _gdh_design_details = design_data.gdh_design_details
         logger.info("Getting the published feature layer...")
         new_published_layers = feature_layer_item.layers
@@ -230,10 +229,8 @@ class ArcGISHelper:
         for new_published_layer in new_published_layers:
             wm.add_layer(new_published_layer)
 
-        web_map_title = (
-            "Webmap for {design_name}".format(
-                design_name=_gdh_design_details.design_name
-            )
+        web_map_title = "Webmap for {design_name}".format(
+            design_name=_gdh_design_details.design_name
         )
         web_map_properties = {
             "title": web_map_title,

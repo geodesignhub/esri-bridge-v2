@@ -210,7 +210,7 @@ def export_design():
             on_success=notify_agol_submission_success,
             on_failure=notify_agol_submission_failure,
             job_id=session_id,
-            job_timeout=3600
+            job_timeout=3600,
         )
 
         return redirect(
