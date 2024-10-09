@@ -59,11 +59,11 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
             num_tags=len(agol_submission_payload.tags_data.tags)
         )
     )
-    # if len(agol_submission_payload.tags_data.tags):
-    #     my_arc_gis_helper.export_project_tags_to_agol(
-    #         tags_data=agol_submission_payload.tags_data,
-    #         project_id=agol_submission_payload.design_data.gdh_design_details.project_id,
-    #     )
+    if len(agol_submission_payload.tags_data.tags):
+        my_arc_gis_helper.export_project_tags_to_agol(
+            tags_data=agol_submission_payload.tags_data,
+            project_id=agol_submission_payload.design_data.gdh_design_details.project_id,
+        )
     submission_processing_result_key = "{session_id}_status".format(
         session_id=agol_submission_payload.session_id
     )
