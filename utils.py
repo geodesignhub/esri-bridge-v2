@@ -77,13 +77,13 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
             feature_layer_item=submission_status_details.item,
             design_data=agol_submission_payload.design_data,
         )
-        my_storymap_publisher = StoryMapPublisher(
-            design_data=agol_submission_payload.design_data,
-            gdh_systems_information=agol_submission_payload.gdh_systems_information,
-            negotiated_design_item_id=my_webmap_item.itemid,
-            gis=my_arc_gis_helper.get_gis(),
-        )
-        my_storymap_publisher.publish_storymap()
+        # my_storymap_publisher = StoryMapPublisher(
+        #     design_data=agol_submission_payload.design_data,
+        #     gdh_systems_information=agol_submission_payload.gdh_systems_information,
+        #     negotiated_design_item_id=my_webmap_item.itemid,
+        #     gis=my_arc_gis_helper.get_gis(),
+        # )
+        # my_storymap_publisher.publish_storymap()
 
     r.set(submission_processing_result_key, json.dumps(asdict(agol_export_status)))
     r.expire(submission_processing_result_key, time=6000)
