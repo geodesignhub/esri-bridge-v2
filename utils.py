@@ -227,7 +227,7 @@ class ArcGISHelper:
         new_published_layers = feature_layer_item.layers
         wm = WebMap()
         for new_published_layer in new_published_layers:
-            wm.add_layer(new_published_layer)
+            wm.add_layer(new_published_layer,{'renderer': {}})
 
         web_map_title = "Webmap for {design_name}".format(
             design_name=_gdh_design_details.design_name
