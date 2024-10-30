@@ -227,7 +227,7 @@ class ArcGISHelper:
         new_published_layers = feature_layer_item.layers
         wm = WebMap()
         for new_published_layer in new_published_layers:
-            wm.add_layer(new_published_layer,{'renderer': {}})
+            wm.add_layer(new_published_layer, {"renderer": {}})
 
         web_map_title = "Webmap for {design_name}".format(
             design_name=_gdh_design_details.design_name
@@ -259,55 +259,54 @@ class ArcGISHelper:
             logger.info("Design already exists in profile, it cannot be  re-uploaded")
             return AGOLFeatureLayerPublishingResponse(status=0, item=None, url="")
 
-        else:
-            _gdh_design_feature_collection: FeatureCollection = (
-                _gdh_design_details.design_geojson.geojson
+        _gdh_design_feature_collection: FeatureCollection = (
+            _gdh_design_details.design_geojson.geojson
+        )
+        agol_item_details = AGOLItemDetails(
+            title=_gdh_design_details.design_name,
+            snippet=_gdh_design_details.project_id,
+            description=design_id,
+            type="GeoJson",
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as output:
+            output.write(geojson.dumps(_gdh_design_feature_collection))
+
+        geojson_item = self.gis.content.add(
+            item_properties=asdict(agol_item_details), data=output.name
+        )
+        os.unlink(output.name)
+        output.delete = True
+
+        feature_layer_item = geojson_item.publish(file_type="geojson")
+        feature_layer_item_url = feature_layer_item.url
+        # the layer
+        logger.info("Layer is published as Feature Collection")
+        logger.info("Getting the published feature layer...")
+        new_published_layers = feature_layer_item.layers
+
+        for new_published_layer in new_published_layers:
+            logger.info(
+                f"{new_published_layer.properties.name} - {new_published_layer.properties.geometryType}"
             )
-            agol_item_details = AGOLItemDetails(
-                title=_gdh_design_details.design_name,
-                snippet=_gdh_design_details.project_id,
-                description=design_id,
-                type="GeoJson",
-            )
 
-            with tempfile.NamedTemporaryFile(mode="w", delete=False) as output:
-                output.write(geojson.dumps(_gdh_design_feature_collection))
-
-            geojson_item = self.gis.content.add(
-                item_properties=asdict(agol_item_details), data=output.name
-            )
-            os.unlink(output.name)
-            output.delete = True
-
-            feature_layer_item = geojson_item.publish(file_type="geojson")
-            feature_layer_item_url = feature_layer_item.url
-            # the layer
-            logger.info("Layer is published as Feature Collection")
-            logger.info("Getting the published feature layer...")
-            new_published_layers = feature_layer_item.layers
-
-            for new_published_layer in new_published_layers:
-                logger.info(
-                    f"{new_published_layer.properties.name} - {new_published_layer.properties.geometryType}"
-                )
-
-                logger.info("Getting the layer manager...")
-                # the layer manager
-                test_layer_manager = new_published_layer.manager
-                # update layer renderer
-                logger.info("Update layer renderer...")
-                test_layer_manager.update_definition(
-                    {
-                        "drawingInfo": {
-                            "renderer": self.create_uv_renderer(
-                                geometry_type=new_published_layer.properties.geometryType,
-                                unique_field_name="system_name",
-                                gdh_project_systems=_gdh_project_systems,
-                            )
-                        }
+            logger.info("Getting the layer manager...")
+            # the layer manager
+            test_layer_manager = new_published_layer.manager
+            # update layer renderer
+            logger.info("Update layer renderer...")
+            test_layer_manager.update_definition(
+                {
+                    "drawingInfo": {
+                        "renderer": self.create_uv_renderer(
+                            geometry_type=new_published_layer.properties.geometryType,
+                            unique_field_name="system_name",
+                            gdh_project_systems=_gdh_project_systems,
+                        )
                     }
-                )
-
-            return AGOLFeatureLayerPublishingResponse(
-                status=1, item=feature_layer_item, url=feature_layer_item_url
+                }
             )
+
+        return AGOLFeatureLayerPublishingResponse(
+            status=1, item=feature_layer_item, url=feature_layer_item_url
+        )
