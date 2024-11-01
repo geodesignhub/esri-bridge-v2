@@ -76,7 +76,9 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
         my_webmap_item = my_arc_gis_helper.publish_feature_layer_as_webmap(
             feature_layer_item=submission_status_details.item,
             design_data=agol_submission_payload.design_data,
+            gdh_systems_information=agol_submission_payload.gdh_systems_information,
         )
+        # TODO: Turned off Storymap Publishing, need to build a new publishing engine
         # my_storymap_publisher = StoryMapPublisher(
         #     design_data=agol_submission_payload.design_data,
         #     gdh_systems_information=agol_submission_payload.gdh_systems_information,
@@ -220,14 +222,37 @@ class ArcGISHelper:
         }
 
     def publish_feature_layer_as_webmap(
-        self, feature_layer_item: Item, design_data: ArcGISDesignPayload
+        self,
+        feature_layer_item: Item,
+        design_data: ArcGISDesignPayload,
+        gdh_systems_information: AllSystemDetails,
     ) -> Item:
         _gdh_design_details = design_data.gdh_design_details
         logger.info("Getting the published feature layer...")
         new_published_layers = feature_layer_item.layers
         wm = WebMap()
         for new_published_layer in new_published_layers:
-            wm.add_layer(new_published_layer, {"renderer": {}})
+            logger.info(
+                f"{new_published_layer.properties.name} - {new_published_layer.properties.geometryType}"
+            )
+
+            logger.info("Getting the layer manager...")
+            # the layer manager
+            my_layer_manager = new_published_layer.manager
+            # update layer renderer
+            logger.info("Update layer renderer...")
+            renderer = self.create_uv_renderer(
+                geometry_type=new_published_layer.properties.geometryType,
+                unique_field_name="system_name",
+                gdh_project_systems=gdh_systems_information,
+            )
+            # set the renderer on the layer item
+            new_published_layer.renderer = renderer
+            # set the renderer on the layer service
+            my_layer_manager.update_definition(
+                {"drawingInfo": {"renderer": renderer}}
+            )
+            wm.add_layer(new_published_layer)
 
         web_map_title = "Webmap for {design_name}".format(
             design_name=_gdh_design_details.design_name

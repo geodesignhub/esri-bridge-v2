@@ -16,6 +16,7 @@ This app is used as a Geodesignhub plugin and can be added to your project via t
 As a pre-requisite to using this plugin, you must create a project with ESRI connections that must be linked, you can mention this to your Geodesignhub project administrator. 
 
 ### Screenshots
+![export design](images/export-to-agol.jpg)
 
 ### Import data from Geoplanner
 Available for Project Administrators
