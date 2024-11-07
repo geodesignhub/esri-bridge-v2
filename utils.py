@@ -22,6 +22,7 @@ import os
 import pandas as pd
 from arcgis.mapping import WebMap
 from storymap_helper import StoryMapPublisher
+from esri_fields_schema_helper import AGOLItemSchemaGenerator
 
 logger = logging.getLogger("esri-gdh-bridge")
 from dotenv import load_dotenv, find_dotenv
@@ -249,9 +250,7 @@ class ArcGISHelper:
             # set the renderer on the layer item
             new_published_layer.renderer = renderer
             # set the renderer on the layer service
-            my_layer_manager.update_definition(
-                {"drawingInfo": {"renderer": renderer}}
-            )
+            my_layer_manager.update_definition({"drawingInfo": {"renderer": renderer}})
             wm.add_layer(new_published_layer)
 
         web_map_title = "Webmap for {design_name}".format(
@@ -302,8 +301,14 @@ class ArcGISHelper:
         )
         os.unlink(output.name)
         output.delete = True
+        my_esri_field_schema_generator = AGOLItemSchemaGenerator(
+            item_name=_gdh_design_details.design_name
+        )
+        publish_parameters = my_esri_field_schema_generator.publish_parameters
 
-        feature_layer_item = geojson_item.publish(file_type="geojson")
+        feature_layer_item = geojson_item.publish(
+            file_type="geojson", publish_parameters=publish_parameters
+        )
         feature_layer_item_url = feature_layer_item.url
         # the layer
         logger.info("Layer is published as Feature Collection")

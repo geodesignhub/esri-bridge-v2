@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import List, Union
+from dataclasses import dataclass, field, asdict
+from typing import List, Union, Dict, Optional
 from geojson import FeatureCollection
 from enum import Enum
 from arcgis.gis import Item
@@ -226,3 +226,66 @@ class AGOLFeatureLayerPublishingResponse:
 class AGOLWebMapPublishingResponse:
     status: int
     item: Union[None, WebMap]
+
+@dataclass
+class ESRIFieldDefinition:
+    name: str
+    type: str
+    sql_type: str
+    length: int = 255
+    precision: int = None
+    noneable: bool = True
+    editable: bool = False
+    domain: str = None
+    default_value: str = None
+
+@dataclass
+class ESRIField:
+    definition: ESRIFieldDefinition
+    alias: str = field(init=False)
+
+    def __post_init__(self):
+        self.alias = self.definition.name.replace("_", " ").capitalize()
+
+@dataclass
+class ESRIFeatureLayer:
+    name: str
+    geometry_type: str
+    object_id_field: str
+    fields: List[ESRIField]
+    type: str = "Feature Layer"
+
+@dataclass
+class AGOLItemSchema:
+    field_definitions: List[ESRIFieldDefinition]
+    item_name: str
+    esri_fields_schema: List[ESRIField] = field(init=False)
+    publish_parameters: Dict[str, any] = field(init=False)
+
+    def __post_init__(self):
+        self.esri_fields_schema = [ESRIField(definition=fd) for fd in self.field_definitions]
+
+        self.publish_parameters = {
+            "type": "geojson",
+            "name": self.item_name,
+            "layers": [
+                asdict(ESRIFeatureLayer(
+                    name=f"{self.item_name}_polygons",
+                    geometry_type="esriGeometryPolygon",
+                    object_id_field="ObjectId",
+                    fields=self.esri_fields_schema,
+                )),
+                asdict(ESRIFeatureLayer(
+                    name=f"{self.item_name}_points",
+                    geometry_type="esriGeometryPoint",
+                    object_id_field="ObjectId",
+                    fields=self.esri_fields_schema,
+                )),
+                asdict(ESRIFeatureLayer(
+                    name=f"{self.item_name}_lines",
+                    geometry_type="esriGeometryPolyline",
+                    object_id_field="ObjectId",
+                    fields=self.esri_fields_schema,
+                )),
+            ],
+        }
