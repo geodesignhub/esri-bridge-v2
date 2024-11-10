@@ -1,5 +1,5 @@
 from data_definitions import AGOLItemSchema, ESRIFieldDefinition
-from dataclasses import asdict
+
 
 class AGOLItemSchemaGenerator:
     def __init__(self, item_name) -> None:
@@ -60,4 +60,3 @@ class AGOLItemSchemaGenerator:
             field_definitions=self.field_definitions, item_name=item_name
         )
         self.publish_parameters = self.esri_field_schema.publish_parameters
-
