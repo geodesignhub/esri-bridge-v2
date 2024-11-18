@@ -301,13 +301,14 @@ class ArcGISHelper:
         )
         os.unlink(output.name)
         output.delete = True
-        my_esri_field_schema_generator = AGOLItemSchemaGenerator(
-            item_name=_gdh_design_details.design_name
-        )
-        publish_parameters = my_esri_field_schema_generator.publish_parameters
+        # my_esri_field_schema_generator = AGOLItemSchemaGenerator(
+        # item_name=_gdh_design_details.design_name
+        # )
+        # publish_parameters = my_esri_field_schema_generator.publish_parameters
+
 
         feature_layer_item = geojson_item.publish(
-            file_type="geojson", publish_parameters=publish_parameters
+            file_type="geojson"
         )
         feature_layer_item_url = feature_layer_item.url
         # the layer
