@@ -231,23 +231,33 @@ class AGOLWebMapPublishingResponse:
 @dataclass
 class ESRIFieldDefinition:
     name: str
-    type: str
-    sql_type: str
-    length: int = 255
-    precision: int = None
-    noneable: bool = True
+    type_: str
+    sqlType: str
+    alias: str
+    precision: int
+    Noneable: bool = True
     editable: bool = False
     domain: str = None
-    default_value: str = None
+    defaultValue: str = None
+    length: Optional[int] = 0
+
+    @staticmethod
+    def dict_factory(x):
+        raw_dict = {k: v for (k, v) in x}
+        # Remove the length property
+        if raw_dict["length"] == 0 and raw_dict["precision"] != 0:
+            raw_dict.pop("length")
+        # Remove the precision property
+        if raw_dict["precision"] == 0:
+            raw_dict.pop("precision")
+        raw_dict["type"] = raw_dict["type_"]
+        raw_dict.pop("type_")
+        return raw_dict
 
 
 @dataclass
 class ESRIField:
     definition: ESRIFieldDefinition
-    alias: str = field(init=False)
-
-    def __post_init__(self):
-        self.alias = self.definition.name.replace("_", " ").capitalize()
 
 
 @dataclass
@@ -256,7 +266,14 @@ class ESRIFeatureLayer:
     geometryType: str
     objectIdField: str
     fields: List[ESRIField]
-    type: str = "Feature Layer"
+    type_: str = "Feature Layer"
+
+    @staticmethod
+    def dict_factory(x):
+        raw_dict = {k: v for (k, v) in x}
+        raw_dict["type"] = raw_dict["type_"]
+        raw_dict.pop("type_")
+        return raw_dict
 
 
 @dataclass
@@ -268,7 +285,8 @@ class AGOLItemSchema:
 
     def __post_init__(self):
         self.esri_fields_schema = [
-            ESRIField(definition=fd) for fd in self.field_definitions
+            asdict(fd, dict_factory=ESRIFieldDefinition.dict_factory)
+            for fd in self.field_definitions
         ]
 
         self.publish_parameters = {
@@ -281,7 +299,8 @@ class AGOLItemSchema:
                         geometryType="esriGeometryPolygon",
                         objectIdField="ObjectId",
                         fields=self.esri_fields_schema,
-                    )
+                    ),
+                    dict_factory=ESRIFeatureLayer.dict_factory,
                 ),
                 asdict(
                     ESRIFeatureLayer(
@@ -289,7 +308,8 @@ class AGOLItemSchema:
                         geometryType="esriGeometryPoint",
                         objectIdField="ObjectId",
                         fields=self.esri_fields_schema,
-                    )
+                    ),
+                    dict_factory=ESRIFeatureLayer.dict_factory,
                 ),
                 asdict(
                     ESRIFeatureLayer(
@@ -297,7 +317,8 @@ class AGOLItemSchema:
                         geometryType="esriGeometryPolyline",
                         objectIdField="ObjectId",
                         fields=self.esri_fields_schema,
-                    )
+                    ),
+                    dict_factory=ESRIFeatureLayer.dict_factory,
                 ),
             ],
         }
