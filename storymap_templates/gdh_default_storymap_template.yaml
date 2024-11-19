@@ -1,14 +1,58 @@
 ---
-name: Default Geodesignhub story map
-panels: 
-    - toc
-    - study_area
-    - photos
-    - negotiated_design
-    - acknowledgements
-project_metadata: 
-  project_basic_details:
-    - title
-    - bounds 
-    - description
-  systems:
+name: "Geodesignhub StoryMap Alpha"
+cover:
+  title: "{project_title}"
+  subtitle: "{project_description}"
+  cover_image_url: "https://story.maps.arcgis.com/sharing/rest/content/items/2fcc801c983a402eb427dd5cd07ee759/data"
+panels:
+  - type: text
+    style: heading
+    text: "Table of Contents"
+  
+  - type: text
+    style: paragraph
+    text: "A. Introduction\nB. Gallery\nC. Negotiated Design Map\nD. Acknowledgements"
+
+  - type: text
+    style: heading
+    text: "------------------------------------------------------------"  # Approx 60 dashes
+
+  - type: text
+    style: paragraph
+    text: "Introduction to the project."
+
+  - type: text
+    style: heading
+    text: "------------------------------------------------------------"  # Approx 60 dashes
+
+  - type: gallery
+    images:
+      - url: "https://images.pexels.com/photos/29045114/pexels-photo-29045114/free-photo-of-aerial-view-of-chicago-s-skyline-and-lakeshore.jpeg"
+        caption: "Photo 1 Caption"
+      - url: "https://images.pexels.com/photos/19234024/pexels-photo-19234024/free-photo-of-birds-eye-view-of-town.jpeg"
+        caption: "Photo 2 Caption"
+      - url: "https://images.pexels.com/photos/599982/pexels-photo-599982.jpeg"
+        caption: "Photo 3 Caption"
+      - url: "https://images.pexels.com/photos/169647/pexels-photo-169647.jpeg"
+        caption: "Photo 4 Caption"
+    caption: "Project Photos"
+    
+  - type: text
+    style: heading
+    text: "------------------------------------------------------------"  # Approx 60 dashes
+
+  - type: map
+    item_id: "{negotiated_design_item_id}"
+    caption: "Negotiated Design Map"
+
+  - type: text
+    style: heading
+    text: "------------------------------------------------------------"  # Approx 60 dashes
+
+  - type: text
+    style: heading
+    text: "Acknowledgements"
+
+  - type: text
+    style: paragraph
+    text: "We appreciate the contributions of all team members."

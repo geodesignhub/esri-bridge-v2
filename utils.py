@@ -79,14 +79,13 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
             design_data=agol_submission_payload.design_data,
             gdh_systems_information=agol_submission_payload.gdh_systems_information,
         )
-        # TODO: Turned off Storymap Publishing, need to build a new publishing engine
-        # my_storymap_publisher = StoryMapPublisher(
-        #     design_data=agol_submission_payload.design_data,
-        #     gdh_systems_information=agol_submission_payload.gdh_systems_information,
-        #     negotiated_design_item_id=my_webmap_item.itemid,
-        #     gis=my_arc_gis_helper.get_gis(),
-        # )
-        # my_storymap_publisher.publish_storymap()
+        my_storymap_publisher = StoryMapPublisher(
+            design_data=agol_submission_payload.design_data,
+            gdh_systems_information=agol_submission_payload.gdh_systems_information,
+            negotiated_design_item_id=my_webmap_item.itemid,
+            gis=my_arc_gis_helper.get_gis(),
+        )
+        my_storymap_publisher.publish_storymap()
 
     r.set(submission_processing_result_key, json.dumps(asdict(agol_export_status)))
     r.expire(submission_processing_result_key, time=6000)
@@ -232,6 +231,10 @@ class ArcGISHelper:
         logger.info("Getting the published feature layer...")
         new_published_layers = feature_layer_item.layers
         wm = WebMap()
+
+        # Initialize extent variable to store combined extent
+        combined_extent = None
+
         for new_published_layer in new_published_layers:
             logger.info(
                 f"{new_published_layer.properties.name} - {new_published_layer.properties.geometryType}"
@@ -253,6 +256,25 @@ class ArcGISHelper:
             my_layer_manager.update_definition({"drawingInfo": {"renderer": renderer}})
             wm.add_layer(new_published_layer)
 
+            # Combine extents for the webmap
+            layer_extent = new_published_layer.properties.extent
+            if layer_extent:
+                if not combined_extent:
+                    combined_extent = layer_extent
+                else:
+                    # Expand the combined extent to include this layer's extent
+                    combined_extent = {
+                        "xmin": min(combined_extent["xmin"], layer_extent["xmin"]),
+                        "ymin": min(combined_extent["ymin"], layer_extent["ymin"]),
+                        "xmax": max(combined_extent["xmax"], layer_extent["xmax"]),
+                        "ymax": max(combined_extent["ymax"], layer_extent["ymax"]),
+                        "spatialReference": layer_extent["spatialReference"],
+                    }
+        
+        # Set the webmap's extent
+        if combined_extent:
+            wm.extent = combined_extent
+        
         web_map_title = "Webmap for {design_name}".format(
             design_name=_gdh_design_details.design_name
         )
@@ -260,6 +282,7 @@ class ArcGISHelper:
             "title": web_map_title,
             "snippet": "This map shows design synthesis details from a negotiation in Geodesignhub",
             "tags": "Geodesignhub",
+            "extent": wm.extent, # Set extent property for wm
         }
 
         # Call the save() with web map item's properties.
