@@ -1,54 +1,176 @@
 ---
+# Title
 name: "Geodesignhub StoryMap Alpha"
 cover:
   title: "{project_title}"
   subtitle: "{project_description}"
   cover_image_url: "https://story.maps.arcgis.com/sharing/rest/content/items/2fcc801c983a402eb427dd5cd07ee759/data"
-panels:
-  - type: text
-    style: heading
-    text: "Table of Contents"
+
+# Content - Please edit this part #################################################################################
+# Update the content below with information specific to the current project. 
+Background_Content: &Background |
+  Region Council requested a community response for the Local Development Plan. Activities included:
+  - Engaging professional landscape architects for Village A.
+  - Community-organized groups identifying priority actions.
+  - Workshops for community involvement.
+Area_of_Interest_Content: &Area_of_Interest |
+  One in-person interactive Geodesign workshop was organized with the community. Prior to the actual workshop, geosurveys were circulated to help prepare for the workshops. The surveys are anonymous, self-explanatory and were shared using social media and other mediums prior to the Geodesign workshops. Once enough responses were received, we conducted the in-person session to discuss the responses and facilitate negotiations to identify and prioritize draft actions. These main issues need to be addressed in the spatial management strategy response as part of the Local Area Plan.
+Broader_Objectives_Content: &Objectives |
+  Region Council requested a community response for the Local Development Plan. Activities included:
+  - Engaging professional landscape architects for Village A.
+  - Community-organized groups identifying priority actions.
+  - Workshops for community involvement.
+Compiling_Prior_Work_Content: &Compiling_Prior_Work |
+  A lot of prior work has been conducted in the area, including dating back a few years by different people / groups, all of them are mainly in the form of PDFs. As a part of the preparatory activities, we identified key reports to digitize the following issues that were already identified based on the public consultation and preliminary surveys, and it gives a strong indication of the type of interventions to be expected.
+GeosurveyContent: &Geosurvey |
+  An anonymous geosurvey was conducted in the community prior to the community mapping event and the main goal of the survey was to collect map-based responses from the community. The survey was introduced and publicized via Facebook and online meetings.
+GeosurveyContent2: &Geosurvey2 |
+  The survey received several responses that included map geometry and text description as a part of the response. An initial review was conducted by the organizing committee in the lead up to the first workshop, after the event, we engaged an independent external review of the responses and the summary is detailed below.
+Workshop_Schedule_Content: &Workshop_Schedule |
+  Geodesign community workshop 
+  1st October 2024: 7pm for 30 mins (online)
+  22nd October 2024: 7pm for 30 mins (online)
+  26th October 2024: 9am - 1pm in the [Village C] [Community Hall] (in-person) 
   
+  9:00AM: START 
+  900AM  920AM: Introduction + Brief Presentation about “the problem”: 
+    Introduction to Geodesign (HB)
+    Introduction to targets, existing work and scope of the workshop (HB + CC )
+  Divide participants into four design teams
+  920AM - 930AM: Tutorial 1: Getting started with Geodesignhub user Interface, logging in, create a synthesis (v1).  
+  930AM - 955AM: Participants review existing diagrams, pick diagrams and create a design synthesis. (v1) 
+  1000 AM - 1020AM Synthesis v1 saved: Teams present designs: v1 Presentation by teams followed by short Q&A
+  1020AM - 1030AM: Coffee break 
+  1030AM - 1045 AM: Synthesis Version 2
+  1045AM - 1100PM: Synthesis v2 saved: v2 Presentation by teams (10 mins each) followed by Q&A
+  1100AM - 1110AM: Sociogram + Alliances
+  1110AM - 1115AM Tutorial 2: How to negotiate.
+  1115AM - 1145AM: Negotiations Phase 1 (4 designs -> 2 designs) (2 groups) 
+  1145AM - 1200 AM: Presentation of 2 scenarios 
+  1200AM - 1245PM: Negotiations Phase 2 (2 designs -> 1 design) (Main session HB + CC)
+  1245PM - 100PM - Presentation of negotiated design (all)
+  200PM -245PM: Set timeline + Assign key organizations (if time permits)
+  1 PM - Lunch / END
+  The flow of the workshop is the following 
+
+Participants_of_the_workshop_Content: &Participants_of_the_workshop |
+  A list of participants and affiliations are here 
+
+###################################################################################################################
+
+panels:
+  # Background
+  - type: text
+    style: heading
+    text: "1. Background"
+
   - type: text
     style: paragraph
-    text: "A. Introduction\nB. Gallery\nC. Negotiated Design Map\nD. Acknowledgements"
+    text: *Background
 
+  - type: separator
+
+  # Area_of_Interest
   - type: text
     style: heading
-    text: "------------------------------------------------------------"  # Approx 60 dashes
-
-  - type: text
-    style: paragraph
-    text: "Introduction to the project."
-
-  - type: text
-    style: heading
-    text: "------------------------------------------------------------"  # Approx 60 dashes
-
-  - type: gallery
-    images:
-      - url: "https://images.pexels.com/photos/29045114/pexels-photo-29045114/free-photo-of-aerial-view-of-chicago-s-skyline-and-lakeshore.jpeg"
-        caption: "Photo 1 Caption"
-      - url: "https://images.pexels.com/photos/19234024/pexels-photo-19234024/free-photo-of-birds-eye-view-of-town.jpeg"
-        caption: "Photo 2 Caption"
-      - url: "https://images.pexels.com/photos/599982/pexels-photo-599982.jpeg"
-        caption: "Photo 3 Caption"
-      - url: "https://images.pexels.com/photos/169647/pexels-photo-169647.jpeg"
-        caption: "Photo 4 Caption"
-    caption: "Project Photos"
-    
-  - type: text
-    style: heading
-    text: "------------------------------------------------------------"  # Approx 60 dashes
+    text: "2. Area of Interest"
 
   - type: map
     item_id: "{negotiated_design_item_id}"
-    caption: "Negotiated Design Map"
+    caption: "Figure 1: Design Area"
 
   - type: text
-    style: heading
-    text: "------------------------------------------------------------"  # Approx 60 dashes
+    style: paragraph
+    text: *Area_of_Interest
+  
+  - type: separator
 
+  # Broader_Objectives
+  - type: text
+    style: heading
+    text: "3. Broader objectives"
+
+  - type: text
+    style: paragraph
+    text: *Objectives
+
+  - type: separator
+
+  # Compiling_Prior_Work
+  - type: text
+    style: heading
+    text: "4. Compiling prior work"
+
+  - type: text
+    style: paragraph
+    text: *Compiling_Prior_Work
+
+  - type: separator
+
+  # Geosurvey
+  - type: text
+    style: heading
+    text: "5. Geosurvey"
+
+  - type: text
+    style: paragraph
+    text: *Geosurvey
+
+  - type: image
+    url: "https://community-6fcc.kxcdn.com/uploads/default/original/1X/0eed20c97d74c71bc9f937b5bea3a8b2f8412a6b.jpeg"
+    caption: "Graph"
+
+  - type: text
+    style: paragraph
+    text: *Geosurvey2
+
+  - type: table
+    headers:
+      - "Improvement Suggestion"
+      - "Comment"
+    rows:
+      - ["Better infrastructure", "Improved road networks"]
+      - ["Increase greenery", "Plant more trees in urban areas"]
+      - ["Flood prevention", "Build retention ponds"]
+
+  - type: separator
+
+  # Workshop_Schedule
+  - type: text
+    style: heading
+    text: "6. Workshop Schedule"
+
+  - type: text
+    style: paragraph
+    text: *Workshop_Schedule
+
+  - type: image
+    url: "https://community-6fcc.kxcdn.com/uploads/default/original/1X/ef0664e002d38cbbad258bbcdfdfcdc7cf985a6e.jpg"
+    caption: "Original Source: Emil Lanfranchi and Francesco Fonzino"
+
+  - type: separator
+
+  # Participants_of_the_workshop
+  - type: text
+    style: heading
+    text: "7. Participants of the workshop"
+
+  - type: text
+    style: paragraph
+    text: *Participants_of_the_workshop
+
+  - type: gallery
+    images:
+      - url: "https://community-6fcc.kxcdn.com/uploads/default/original/1X/b9e8c9bd2e9fc7eaf6c3280335ff158cc68be7c7.jpg"
+        caption: "Photo 1"
+      - url: "https://community-6fcc.kxcdn.com/uploads/default/original/1X/27979335c966086ea51b2e76d0a6cc799ea7ba81.jpg"
+        caption: "Photo 2"
+      - url: "https://community-6fcc.kxcdn.com/uploads/default/original/1X/d38d45ad6bb1af098903efae70de63da018d7071.jpeg"
+        caption: "Photo 3"
+      - url: "https://community-6fcc.kxcdn.com/uploads/default/original/1X/7af77de5e8efb689e8e94ca32c33c3bfffc3e275.jpg"
+        caption: "Photo 4"
+    caption: "Photos"
+    
   - type: text
     style: heading
     text: "Acknowledgements"

@@ -8,6 +8,7 @@ from arcgis.apps.storymap.story_content import (
     Audio,
     Embed,
     Map,
+    Table,
     Text,
     TextStyles,
     Separator,
@@ -20,6 +21,10 @@ from arcgis.apps.storymap.story_content import (
 
 import os
 import yaml
+import pandas as pd
+import tempfile
+from PIL import Image as PILImage
+import requests
 from data_definitions import ArcGISDesignPayload, AllSystemDetails
 import logging
 from pathlib import Path
@@ -109,6 +114,8 @@ class StoryMapPublisher:
                 self._add_gallery(panel)
             elif panel_type == "separator":
                 self._add_separator()
+            elif panel_type == "table":
+                self._add_table(panel)
             else:
                 logger.warning(f"Unsupported panel type: {panel_type}")
 
@@ -141,12 +148,52 @@ class StoryMapPublisher:
         if item_id:
             try:
                 map_item = Item(gis=self._gis, itemid=item_id)
-                new_map = Map(item=map_item, caption=caption)
+                new_map = Map(item=map_item)
+          
+                # Clear conflicting properties
+                new_map._zoom = None  # Ensure zoom doesn't override extent
+                new_map._viewpoint = None  # Clear any predefined viewpoint
+
+                # Add the map to the StoryMap
                 self._storymap.add(new_map)
+                new_map.caption = caption
+
             except Exception as e:
                 logger.error(f"Failed to add map: {e}")
         else:
             logger.warning("Map item ID is missing.")
+
+    
+    def _add_image(self, panel):
+        """Add a single image element to the StoryMap."""
+        logger.info("Adding a single image...")
+
+        image_url = panel.get("url")
+        caption = panel.get("caption", "")
+
+        if not image_url:
+            logger.error("No URL provided for the image.")
+            return
+
+        processed_image_path = None
+        try:
+            # Process the image (download/convert if needed)
+            processed_image_path = self._process_image(image_url)
+            if not processed_image_path:
+                raise ValueError(f"Failed to process image: {image_url}")
+
+            # Add the image to the StoryMap
+            image = Image(path=processed_image_path)
+            self._storymap.add(image)
+            image.caption = caption
+            logger.info(f"Image added successfully: {image_url} with caption: '{caption}'")
+        except Exception as e:
+            logger.error(f"Failed to add image: {image_url} - {e}")
+        finally:
+            # Clean up the converted image file
+            if processed_image_path and processed_image_path.startswith(tempfile.gettempdir()):
+                os.remove(processed_image_path)
+
 
     def _add_text(self, panel):
         """Add a text element to the StoryMap."""
@@ -156,62 +203,155 @@ class StoryMapPublisher:
         if style not in TextStyles.__members__:
             logger.warning(f"Invalid text style: {style}, defaulting to PARAGRAPH")
             style = "PARAGRAPH"
-       # Split text by line breaks and add a bullet to each line if multiple lines are detected
-        text_lines = text_content.split("\n")
-        if len(text_lines) > 1:
-            for line in text_lines:
-                bullet_text = f"• {line.strip()}"  # Add a bullet and strip extra whitespace
-                text = Text(text=bullet_text, style=TextStyles[style])
-                self._storymap.add(text)
-        else:
-            # For single-line content, add it directly without bullets
-            text = Text(text=text_content, style=TextStyles[style])
-            self._storymap.add(text)
-            
-    # Adding a gallery element to the StoryMap using valid item references
+
+        # Add the text directly, whether single-line or multiline
+        text = Text(text=text_content.strip(), style=TextStyles[style])
+        self._storymap.add(text)
+
     def _add_gallery(self, panel):
         """Add a gallery element to the StoryMap."""
+        logger.info("Adding a gallery...")
 
         images_info = panel.get("images", [])
-        images = []
+        if not images_info:
+            logger.error("No images provided for the gallery.")
+            return
 
-        # Loop through each image entry in the YAML data
-        for image_info in images_info:
-            image_url = image_info.get("url")
-            caption = image_info.get("caption", "")
+        # Initialize an empty Gallery object
+        try:
+            gallery = Gallery()
+            self._storymap.add(gallery)
+        except Exception as e:
+            logger.error(f"Failed to initialize Gallery: {e}")
+            return
 
-            if not image_url:
-                continue
+        processed_image_paths = []
+        try:
+            for image_info in images_info:
+                image_url = image_info.get("url")
+                caption = image_info.get("caption", "")
 
-            try:
-                # Create an Image instance directly with the provided URL and caption
-                image = Image(path=image_url, caption=caption)
-                images.append(image)
-            except Exception as e:
-                logger.error(f"Failed to create Image object for URL: {image_url} - {e}")
+                if not image_url:
+                    logger.warning("Skipping image with no URL.")
+                    continue
 
-        # Proceed only if there are valid images
-        if images:
+                try:
+                    # Process the image (download/convert if needed)
+                    processed_image_path = self._process_image(image_url)
+                    if not processed_image_path:
+                        raise ValueError(f"Failed to process image: {image_url}")
+
+                    # Add the image to the gallery
+                    image = Image(path=processed_image_path)
+                    gallery.add_images([image])
+                    image.caption = caption
+                    processed_image_paths.append(processed_image_path)
+                    logger.info(f"Image added to gallery: {image_url} with caption: '{caption}'")
+                except Exception as e:
+                    logger.error(f"Failed to add image to gallery - URL: {image_url} - {e}")
+
+            # Set the gallery's caption
             gallery_caption = panel.get("caption", "Gallery Caption")
-            try:
-                # Create a Gallery object without images initially and add it to the StoryMap
-                gallery = Gallery()
-                self._storymap.add(gallery)
-                gallery.caption = gallery_caption
-
-                # Add images to the gallery after it's part of the StoryMap
-                gallery.add_images(images)
-            except Exception as e:
-                logger.error(f"Failed to add gallery to StoryMap - {e}")
-        else:
-            logger.error("No valid images to add to gallery.")
-            
+            gallery.caption = gallery_caption
+            logger.info(f"Gallery caption set: '{gallery_caption}'")
+        finally:
+            # Clean up all processed image files
+            for path in processed_image_paths:
+                if path and path.startswith(tempfile.gettempdir()):
+                    os.remove(path)
 
     def _add_separator(self):
         logger.info("Adding the separator...")
         """Add a separator element to the StoryMap."""
         separator = Separator()
         self._storymap.add(separator)
+
+    def _add_table(self, panel):
+        """Add a table element to the StoryMap."""
+        logger.info("Adding a table...")
+
+        # Retrieve headers and rows from the panel
+        headers = panel.get("headers", [])
+        rows = panel.get("rows", [])
+
+        if not headers or not rows:
+            logger.warning("Table headers or rows are missing. Skipping this panel.")
+            return
+
+        try:
+            # Validate the number of rows and columns
+            num_data_rows = len(rows)  # Number of data rows
+            num_columns = len(headers)
+
+            if num_data_rows > 9 or num_data_rows < 1:
+                logger.warning(f"Invalid number of rows ({num_data_rows}). Must be between 1 and 9. Skipping.")
+                return
+
+            if num_columns > 8 or num_columns < 1:
+                logger.warning(f"Invalid number of columns ({num_columns}). Must be between 1 and 8. Skipping.")
+                return
+
+            # Create the Table instance with correct total size (header + data rows)
+            table = Table(rows=num_data_rows + 1, columns=num_columns)
+            self._storymap.add(table)  # Add table to the StoryMap
+
+            # Construct the DataFrame
+            # Create structured rows with each cell as a dictionary containing "value"
+            structured_data = []
+
+            # Add the header row
+            structured_data.append([{ "value": header } for header in headers])
+
+            # Add the data rows
+            for row in rows:
+                structured_data.append([{ "value": str(cell) } for cell in row])
+
+            # Convert structured_data into a DataFrame
+            df = pd.DataFrame(
+                structured_data,
+                columns=headers
+            )
+
+            # Set the content of the table using the DataFrame
+            # table.content = df
+
+            logger.info(f"Table added successfully with headers: {headers} and {len(rows)} data rows.")
+        except Exception as e:
+            logger.error(f"Failed to add table to StoryMap: {e}")
+
+
+    def _process_image(self, image_url):
+        """Download and convert an image to JPEG if necessary."""
+        temp_file_path = None
+        converted_path = None
+
+        try:
+            # Download the image
+            response = requests.get(image_url, stream=True, headers={
+                "User-Agent": "Mozilla/5.0",
+                "Accept-Language": "en-US,en;q=0.9",
+            })
+            response.raise_for_status()
+
+            # Save to a temporary file
+            temp_file_path = tempfile.NamedTemporaryFile(delete=False).name
+            with open(temp_file_path, "wb") as f:
+                for chunk in response.iter_content(1024):
+                    f.write(chunk)
+
+            # Convert to JPEG
+            converted_path = f"{temp_file_path}.jpeg"
+            with PILImage.open(temp_file_path) as img:
+                img.convert("RGB").save(converted_path, "JPEG")
+
+            return converted_path  # Return the path to the converted file
+        except Exception as e:
+            logger.error(f"Failed to process image: {image_url} - {e}")
+            return None
+        finally:
+            # Clean up only the downloaded file (not the converted JPEG)
+            if temp_file_path and os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
 
     def publish_storymap(self):
         logger.info("Populating the StoryMap from template...")
