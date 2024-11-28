@@ -1,10 +1,16 @@
 ---
 # Title
 name: "Geodesignhub StoryMap Alpha"
+
+placeholders:
+  project_title: "Storymap for {design_name}"
+  project_description: "A story map for Geodesignhub negotiation with project id {project_id}"
+  negotiated_design_item_id: "{negotiated_design_item_id}"
+
 cover:
   title: "{project_title}"
   subtitle: "{project_description}"
-  cover_image_url: "https://story.maps.arcgis.com/sharing/rest/content/items/2fcc801c983a402eb427dd5cd07ee759/data"
+  cover_image_url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/7d973317b8434f298e4c543f37e0b0c8/data"
 
 # Content - Please edit this part #################################################################################
 # Update the content below with information specific to the current project. 
@@ -56,6 +62,14 @@ Workshop_Schedule_Content: &Workshop_Schedule |
 Participants_of_the_workshop_Content: &Participants_of_the_workshop |
   A list of participants and affiliations are here 
 
+Acknowledgements_Content: &Acknowledgements |
+  GeoWestCoast- Engaging Ireland's communities in Heritage, Landscape, Conservation and Development Projects.
+  Principal Investigator: UCD School of Agriculture & Food Science. 
+  Co-Principal Investigator: Faculty of Architecture and the Built Environment.
+  External Partners: Social Research, Dr Hrishikesh Ballal, Geodesignhub
+  Student Intern: Indiana University
+
+  StoryMaps Developed by Geodesignhub ESRI bridge v2, 2024
 ###################################################################################################################
 
 panels:
@@ -177,4 +191,12 @@ panels:
 
   - type: text
     style: paragraph
-    text: "We appreciate the contributions of all team members."
+    text: *Acknowledgements
+
+  - type: image
+    url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/3bc45b161a46412d86cd7c4daabfe7f8/data"
+    caption: "Partner Logos"
+
+  - type: image
+    url: "https://www.rug.nl/library/open-access/blog/which-creative-commons-licence-should-i-choose-19-02-2021!attachment?c=images/blog-image-normal.jpg"
+    caption: "Except where noted, images are licensed under Creative Commons License."

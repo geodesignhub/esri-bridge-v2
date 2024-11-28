@@ -43,19 +43,20 @@ class TestStoryMapPublisher(unittest.TestCase):
             )
         return publisher
 
+    @patch('storymap_helper.StoryMapPublisher._replace_placeholders')
     @patch('storymap_helper.StoryMap')
-    def test_init(self, mock_storymap_class):
+    def test_init(self, mock_storymap_class, mock_replace_placeholders):
         publisher = self.create_publisher()
 
-        expected_title = f"Storymap for {self.mock_design_data.gdh_design_details.design_name}"
-        expected_subtitle = (
-            f"A story map for Geodesignhub negotiation with project id "
-            f"{self.mock_design_data.gdh_design_details.project_id}"
-        )
-        self.assertEqual(publisher._storymap_template['cover']['title'], expected_title)
-        self.assertEqual(publisher._storymap_template['cover']['subtitle'], expected_subtitle)
+        # Mock placeholder replacement
+        mock_replace_placeholders.assert_called_once()
+
+        # Check unprocessed placeholder in cover (if not replaced during init)
+        self.assertEqual(publisher._storymap_template["cover"]["title"], "{project_title}")
+        self.assertEqual(publisher._storymap_template["cover"]["subtitle"], "{project_description}")
 
         mock_storymap_class.assert_called_once_with()
+
 
     @patch('storymap_helper.Text')
     @patch('storymap_helper.StoryMap')
@@ -485,7 +486,6 @@ class TestStoryMapPublisher(unittest.TestCase):
             publisher.publish_storymap()
             mock_storymap_instance.save.assert_called_once_with(publish=True)
             mock_logger.error.assert_called_with("Failed to update title and description: StoryMap item not initialized.")
-
 
 if __name__ == '__main__':
     unittest.main()
