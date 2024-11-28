@@ -1,22 +1,14 @@
-import arcgis
 from arcgis.gis import GIS, Item
 from arcgis.apps.storymap.story import StoryMap
 from arcgis.apps.storymap.story_content import (
     Image,
     TextStyles,
-    Video,
-    Audio,
-    Embed,
     Map,
     Table,
     Text,
     TextStyles,
     Separator,
-    Button,
-    Gallery,
-    Swipe,
-    Sidecar,
-    Timeline,
+    Gallery
 )
 
 import os
@@ -29,7 +21,6 @@ from data_definitions import ArcGISDesignPayload, AllSystemDetails
 import logging
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
-
 
 logger = logging.getLogger("esri-gdh-bridge")
 
@@ -70,23 +61,31 @@ class StoryMapPublisher:
         # Create the StoryMap object with the title
         self._storymap = self.create_new_storymap()
 
+
     def _replace_placeholders(self):
         """Replace placeholders in the YAML template with actual values."""
- 
-        placeholders = {
-            "{project_title}": "Storymap for {design_name}".format(
-                design_name=self._gdh_design_details.gdh_design_details.design_name
-            ),
-            "{project_description}": "A story map for Geodesignhub negotiation with project id {project_id}".format(
-                project_id=self._gdh_design_details.gdh_design_details.project_id
-            ),
-            "{negotiated_design_item_id}": self._negotiated_design_item_id,
+        # Dynamic values to be substituted
+        dynamic_values = {
+            "design_name": self._gdh_design_details.gdh_design_details.design_name,
+            "project_id": self._gdh_design_details.gdh_design_details.project_id,
+            "negotiated_design_item_id": self._negotiated_design_item_id,
         }
 
+        # Extract placeholders from the template (as a dictionary)
+        placeholders = self._storymap_template.get("placeholders", {})
+
+        if not isinstance(placeholders, dict):
+            raise ValueError("Expected 'placeholders' to be a dictionary in the YAML template.")
+
+        # Iterate over placeholders and perform replacements
         yaml_str = yaml.dump(self._storymap_template)
-        for placeholder, value in placeholders.items():
-            yaml_str = yaml_str.replace(placeholder, value)
+        for key, default_value in placeholders.items():
+            replacement_value = default_value.format(**dynamic_values)
+            yaml_str = yaml_str.replace(f"{{{key}}}", replacement_value)
+
+        # Reload the updated YAML string into the template
         self._storymap_template = yaml.safe_load(yaml_str)
+
 
     def create_new_storymap(self) -> StoryMap:
         """Create a blank StoryMap with the given title and return the instance."""
@@ -128,7 +127,7 @@ class StoryMapPublisher:
         cover = self._storymap_template.get("cover", {})
         title = cover.get("title", "Project Title")
         summary = cover.get("subtitle", "Project Description")
-        cover_image_url = cover.get("cover_image_url", "https://story.maps.arcgis.com/sharing/rest/content/items/2fcc801c983a402eb427dd5cd07ee759/data")
+        cover_image_url = cover.get("cover_image_url", "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/7d973317b8434f298e4c543f37e0b0c8/data")
 
         # Use the `cover()` method on `self._storymap` to set these properties directly
         self._storymap.cover(
