@@ -136,22 +136,35 @@ class TestStoryMapPublisher(unittest.TestCase):
 
     @patch('storymap_helper.StoryMap')
     def test_publish_storymap(self, mock_storymap_class):
+        # Mock the StoryMap instance
         mock_storymap_instance = mock_storymap_class.return_value
         publisher = self.create_publisher()
         publisher._storymap = mock_storymap_instance
 
+        # Mock the _item attribute
         mock_item = MagicMock()
         publisher._storymap._item = mock_item
 
+        # Set up expected title and description based on template
+        publisher._storymap_template = {
+            "name": "Geodesignhub ESRI Bridge Alpha",
+            "description": "A detailed story map for Geodesignhub projects"
+        }
+        expected_title = publisher._storymap_template["name"]
+        expected_description = publisher._storymap_template["description"]
+
+        # Execute the publish_storymap method
         publisher.publish_storymap()
 
+        # Verify that save is called with publish=True
         mock_storymap_instance.save.assert_called_once_with(publish=True)
-        expected_title = publisher._storymap_template.get("name", "Geodesignhub StoryMap")
-        expected_description = publisher._storymap_template.get("description", "A story map for the Geodesignhub project")
+
+        # Verify that the item's title and snippet are updated
         mock_item.update.assert_called_once_with({
             "title": expected_title,
             "snippet": expected_description
         })
+
 
     @patch('storymap_helper.Separator')
     @patch('storymap_helper.StoryMap')
@@ -299,34 +312,53 @@ class TestStoryMapPublisher(unittest.TestCase):
     @patch('storymap_helper.StoryMapPublisher._add_map')
     @patch('storymap_helper.StoryMap')
     def test_populate_storymap_from_template(self, mock_storymap_class, mock_add_map, mock_add_image, mock_add_text, mock_set_cover):
+        # Mock the StoryMap instance
         mock_storymap_instance = mock_storymap_class.return_value
         publisher = self.create_publisher()
         publisher._storymap = mock_storymap_instance
 
-        # Modify the template to include different panel types
+        # Mock updated template structure
         publisher._storymap_template = {
             "cover": {},
-            "panels": [
-                {"type": "text", "text": "Test Text"},
-                {"type": "image", "url": "https://example.com/image.jpg"},
-                {"type": "map", "item_id": "test_item_id"},
-                {"type": "unsupported_type"}
+            "sections": [
+                {
+                    "title": "Introduction",
+                    "panels": [
+                        {"type": "text", "style": "subheading", "text": "1. Background"},
+                        {"type": "text", "style": "paragraph", "text": "Sample Background Content"},
+                        {"type": "image", "url": "https://example.com/image.jpg", "caption": "Sample Image"},
+                        {"type": "map", "item_id": "test_item_id", "caption": "Test Map"}
+                    ]
+                },
+                {
+                    "title": "Additional Section",
+                    "panels": [
+                        {"type": "unsupported_type"}
+                    ]
+                }
             ]
         }
 
+        # Execute the method
         with patch('storymap_helper.logger') as mock_logger:
             publisher.populate_storymap_from_template()
 
-            # Verify that _set_cover is called
+            # Verify _set_cover was called once
             mock_set_cover.assert_called_once()
 
-            # Verify that the appropriate methods are called
-            mock_add_text.assert_called_once_with(publisher._storymap_template["panels"][0])
-            mock_add_image.assert_called_once_with(publisher._storymap_template["panels"][1])
-            mock_add_map.assert_called_once_with(publisher._storymap_template["panels"][2])
+            # Verify _add_text is called for text panels
+            mock_add_text.assert_any_call({"type": "text", "style": "subheading", "text": "1. Background"})
+            mock_add_text.assert_any_call({"type": "text", "style": "paragraph", "text": "Sample Background Content"})
 
-            # Verify that a warning is logged for unsupported panel type
+            # Verify _add_image is called for image panels
+            mock_add_image.assert_called_once_with({"type": "image", "url": "https://example.com/image.jpg", "caption": "Sample Image"})
+
+            # Verify _add_map is called for map panels
+            mock_add_map.assert_called_once_with({"type": "map", "item_id": "test_item_id", "caption": "Test Map"})
+
+            # Verify warning for unsupported panel type
             mock_logger.warning.assert_called_with("Unsupported panel type: unsupported_type")
+
 
     @patch('storymap_helper.Text')
     @patch('storymap_helper.StoryMap')

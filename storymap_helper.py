@@ -99,24 +99,32 @@ class StoryMapPublisher:
         # Set the cover
         self._set_cover()
 
-        # Iterate over the panels and add content accordingly
-        panels = self._storymap_template.get("panels", [])
-        for panel in panels:
-            panel_type = panel.get("type")
-            if panel_type == "text":
-                self._add_text(panel)
-            elif panel_type == "map":
-                self._add_map(panel)
-            elif panel_type == "image":
-                self._add_image(panel)
-            elif panel_type == "gallery":
-                self._add_gallery(panel)
-            elif panel_type == "separator":
-                self._add_separator()
-            elif panel_type == "table":
-                self._add_table(panel)
-            else:
-                logger.warning(f"Unsupported panel type: {panel_type}")
+        # Iterate over the sections
+        sections = self._storymap_template.get("sections", [])
+        for section in sections:
+            section_title = section.get("title", "Untitled Section")
+            panels = section.get("panels", [])
+
+            # Add a heading for the section
+            self._add_text({"text": section_title, "style": "heading"})
+
+            # Add the panels within the section
+            for panel in panels:
+                panel_type = panel.get("type")
+                if panel_type == "text":
+                    self._add_text(panel)
+                elif panel_type == "map":
+                    self._add_map(panel)
+                elif panel_type == "image":
+                    self._add_image(panel)
+                elif panel_type == "gallery":
+                    self._add_gallery(panel)
+                elif panel_type == "separator":
+                    self._add_separator()
+                elif panel_type == "table":
+                    self._add_table(panel)
+                else:
+                    logger.warning(f"Unsupported panel type: {panel_type}")
 
     def _set_cover(self):
         """Set the cover of the StoryMap."""
@@ -290,12 +298,11 @@ class StoryMapPublisher:
                 logger.warning(f"Invalid number of columns ({num_columns}). Must be between 1 and 8. Skipping.")
                 return
 
-            # Create the Table instance with correct total size (header + data rows)
+            # Create the Table instance
             table = Table(rows=num_data_rows + 1, columns=num_columns)
-            self._storymap.add(table)  # Add table to the StoryMap
+            self._storymap.add(table)
 
             # Construct the DataFrame
-            # Create structured rows with each cell as a dictionary containing "value"
             structured_data = []
 
             # Add the header row
@@ -306,13 +313,11 @@ class StoryMapPublisher:
                 structured_data.append([{ "value": str(cell) } for cell in row])
 
             # Convert structured_data into a DataFrame
-            df = pd.DataFrame(
-                structured_data,
-                columns=headers
-            )
+            df = pd.DataFrame(structured_data)
 
-            # Set the content of the table using the DataFrame
-            # table.content = df
+            # Assign the DataFrame to the table's content
+            table.content = df
+
 
             logger.info(f"Table added successfully with headers: {headers} and {len(rows)} data rows.")
         except Exception as e:
@@ -360,7 +365,7 @@ class StoryMapPublisher:
         self._storymap.save(publish=True)
 
         # Retrieve title and description from the template or set defaults
-        storymap_title = self._storymap_template.get("name", "Geodesignhub StoryMap")
+        storymap_title = self._storymap_template.get("name", "Geodesignhub ESRI Bridge Alpha")
         storymap_description = self._storymap_template.get("description", "A story map for the Geodesignhub project")
 
         # Update the title and description after saving
