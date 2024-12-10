@@ -146,7 +146,12 @@ class GeodesignhubSystem:
     color: str
     verbose_description: str
 
-
+@dataclass
+class GeodesignhubProjectDetails:
+    id: str
+    project_title: str
+    project_description: str
+    
 @dataclass
 class GeodesignhubSystemDetail:
     id: int
