@@ -17,7 +17,7 @@ import pandas as pd
 import tempfile
 from PIL import Image as PILImage
 import requests
-from data_definitions import ArcGISDesignPayload, AllSystemDetails
+from data_definitions import ArcGISDesignPayload, AllSystemDetails, GeodesignhubProjectDetails
 import logging
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
@@ -34,12 +34,14 @@ class StoryMapPublisher:
         design_data: ArcGISDesignPayload,
         gdh_systems_information: AllSystemDetails,
         negotiated_design_item_id: str,
+        gdh_project_details:GeodesignhubProjectDetails,
         gis: GIS,
     ):
         """Initialize the story map publisher with information to publish the map"""
         self._gdh_design_details = design_data
         self._gis = gis
         self._negotiated_design_item_id = negotiated_design_item_id
+        self._gdh_project_details  = gdh_project_details
 
         # Load the YAML template
         _storymap_template_filename = "gdh_default_storymap_template.yaml"
@@ -69,6 +71,8 @@ class StoryMapPublisher:
             "design_name": self._gdh_design_details.gdh_design_details.design_name,
             "project_id": self._gdh_design_details.gdh_design_details.project_id,
             "negotiated_design_item_id": self._negotiated_design_item_id,
+            "gdh_project_name":self._gdh_project_details.project_title,
+            "verbose_project_description":self._gdh_project_details.project_description
         }
 
         # Extract placeholders from the template (as a dictionary)

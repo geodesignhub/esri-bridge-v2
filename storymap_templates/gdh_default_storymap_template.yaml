@@ -4,7 +4,7 @@ name: "Geodesignhub StoryMap Alpha"
 
 placeholders:
   project_title: "Storymap for {design_name}"
-  project_description: "A story map for Geodesignhub negotiation with project id {project_id}"
+  project_description: "{verbose_project_description}"
   negotiated_design_item_id: "{negotiated_design_item_id}"
 
 cover:

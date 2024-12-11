@@ -82,9 +82,14 @@ class GeodesignhubDataDownloader:
             )
             return error_msg
 
-        bounds = from_dict(data_class=GeodesignhubProjectDetails, data=d.json())
+        _raw_project_details = d.json()
+        project_details = GeodesignhubProjectDetails(
+            id=_raw_project_details['id'],
+            project_title=_raw_project_details['projecttitle'],
+            project_description=_raw_project_details['projectdesc'],
+        )
 
-        return bounds
+        return project_details
 
     def download_project_systems(
         self,
