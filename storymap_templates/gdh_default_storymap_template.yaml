@@ -87,52 +87,52 @@ Acknowledgements_Content: &Acknowledgements |
 sections:
   - title: "Introduction"
     panels:
-      - type: text
+      - content_type: text
         style: subheading
         text: "1. Background"
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Background
-      - type: separator
-      - type: text
+      - content_type: separator
+      - content_type: text
         style: subheading
         text: "2. Area of Interest"
-      - type: map
+      - content_type: map
         item_id: "{negotiated_design_item_id}"
         caption: "Figure 1: Design Area"
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Area_of_Interest
 
   - title: "Negotiation Details"
     panels:
-      - type: text
+      - content_type: text
         style: subheading
         text: "3. Broader Objectives"
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Objectives
-      - type: separator
-      - type: text
+      - content_type: separator
+      - content_type: text
         style: subheading
         text: "4. Compiling Prior Work"
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Compiling_Prior_Work
-      - type: separator
-      - type: text
+      - content_type: separator
+      - content_type: text
         style: subheading
         text: "5. Geosurvey"
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Geosurvey
-      - type: image
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/05df78272aa947b7867e9320b1ef4fb9/data"
         caption: "Graph"
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Geosurvey2
-      - type: table
+      - content_type: table
         headers:
           - "Improvement Suggestion"
           - "Comment"
@@ -140,56 +140,56 @@ sections:
           - ["Better infrastructure", "Improved road networks"]
           - ["Increase greenery", "Plant more trees in urban areas"]
           - ["Flood prevention", "Build retention ponds"]
-      - type: separator
-      - type: text
+      - content_type: separator
+      - content_type: text
         style: subheading
         text: "6. Negotiation Analysis"
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Negotiation_Analysis
-      - type: image
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/76e237fc75cf40e29d1572a87cdaef47/data"
         caption: "Design Frequency Analysis"
-      - type: separator
-      - type: separator
-      - type: separator
-      - type: image
+      - content_type: separator
+      - content_type: separator
+      - content_type: separator
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/24aa98459d9846b896c259ae45a428b0/data"
         caption: "BIOD 1 & BIOD 2"
-      - type: separator
-      - type: separator
-      - type: image
+      - content_type: separator
+      - content_type: separator
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/dda900bd211343ecb7819a328feb251c/data"
         caption: "HSG 2 & TRANS 2"
-      - type: separator
-      - type: separator
-      - type: separator
-      - type: image
+      - content_type: separator
+      - content_type: separator
+      - content_type: separator
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/0651e4ca77b24b4da71aa7316902c0fc/data"
         caption: "Moving from four designs to two"        
-      - type: separator
-      - type: image
+      - content_type: separator
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/eae44226112b4621bba2ad0ca7dcc46b/data"
         caption: "Agreements"       
-      - type: separator
-      - type: text
+      - content_type: separator
+      - content_type: text
         style: subheading
         text: "7. Final Design" 
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Final_Design
-      - type: image
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/666adf5275304b99b1a95e8f890c59e3/data"
         caption: "Design Map"
-      - type: separator
-      - type: text
+      - content_type: separator
+      - content_type: text
         style: paragraph
         text: *Theme_Action
-      - type: separator
-      - type: image
+      - content_type: separator
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/e458d4c1c2ca4aea89902240c091f176/data"
         caption: "Bio Diversity"
-      - type: table
+      - content_type: table
         headers:
           - "Diagram"
           - "Title"
@@ -199,11 +199,11 @@ sections:
           - ["BIOD 3", "Loch Long seabed trawling restriction area"]
           - ["BIOD 4", "Clearwater Group: Proposed Marine Protection Area (MPA)"]
           - ["BIOD 5", "Shoreward strip"]
-      - type: separator
-      - type: image
+      - content_type: separator
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/3f0c951cbbbd4bb3adbd92031b9f9131/data"
         caption: "Housing"
-      - type: table
+      - content_type: table
         headers:
           - "Diagram"
           - "Title"
@@ -213,11 +213,11 @@ sections:
           - ["HSG 3", "HET Group H3B Large houses currently in private ownership which may provide sites for future development for mixed use apartments / sheltered / affordable housing"]
           - ["HSG 4", "HET Group H3A Large houses currently in private ownership which may provide sites for future development for mixed use apartments / sheltered / affordable housing"]
           - ["HSG 5", "HET Group H2 Housing beyond Cove and Kilcreggan Villages Bottom of Peaton Hill (on RHS if looking uphill). On bus routes and has potential for expansion for military families (and others) opposite to meadow protection"]
-      - type: separator
-      - type: image
+      - content_type: separator
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/4f696357491c4cf3b397ab98d8ebd9c9/data"
         caption: "Road Transport"
-      - type: table
+      - content_type: table
         headers:
           - "Diagram"
           - "Title"
@@ -227,30 +227,30 @@ sections:
           - ["TRANS 3", "Improved parking at Bbour Rd. forestry track"]
           - ["TRANS 4", "Argyll Rd: Traffic calming measures to stop speeding. This is used as a rat run and is extremely dangerous particularly considering the number of children who walk along this road to go to school each day"]
           - ["TRANS 5", "HET Group T1 Traffic Calming School Road & Silver Bay (20mph)"]
-      - type: separator
-      - type: text
+      - content_type: separator
+      - content_type: text
         style: paragraph
         text: *Areas_No_Consensus
-      - type: separator
+      - content_type: separator
   - title: "Conclusion"
     panels:
-      - type: text
+      - content_type: text
         style: subheading
         text: "8. Workshop Schedule"
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Workshop_Schedule
-      - type: image
+      - content_type: image
         url: "https://community-6fcc.kxcdn.com/uploads/default/original/1X/ef0664e002d38cbbad258bbcdfdfcdc7cf985a6e.jpg"
         caption: "Original Source: Emil Lanfranchi and Francesco Fonzino"
-      - type: separator
-      - type: text
+      - content_type: separator
+      - content_type: text
         style: subheading
         text: "9. Participants of the Workshop"
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Participants_of_the_workshop
-      - type: gallery
+      - content_type: gallery
         images:
           - url: "https://community-6fcc.kxcdn.com/uploads/default/original/1X/b9e8c9bd2e9fc7eaf6c3280335ff158cc68be7c7.jpg"
             caption: "Photo 1"
@@ -261,15 +261,15 @@ sections:
           - url: "https://community-6fcc.kxcdn.com/uploads/default/original/1X/7af77de5e8efb689e8e94ca32c33c3bfffc3e275.jpg"
             caption: "Photo 4"
         caption: "Photos"
-      - type: text
+      - content_type: text
         style: subheading
         text: "Acknowledgements"
-      - type: text
+      - content_type: text
         style: paragraph
         text: *Acknowledgements
-      - type: image
+      - content_type: image
         url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/3bc45b161a46412d86cd7c4daabfe7f8/data"
         caption: "Partner Logos"
-      - type: image
+      - content_type: image
         url: "https://www.rug.nl/library/open-access/blog/which-creative-commons-licence-should-i-choose-19-02-2021!attachment?c=images/blog-image-normal.jpg"
         caption: "Except where noted, images are licensed under Creative Commons License."
