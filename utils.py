@@ -83,6 +83,7 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
             design_data=agol_submission_payload.design_data,
             gdh_systems_information=agol_submission_payload.gdh_systems_information,
             negotiated_design_item_id=my_webmap_item.itemid,
+            gdh_project_details = agol_submission_payload.gdh_project_details,
             gis=my_arc_gis_helper.get_gis(),
         )
         my_storymap_publisher.publish_storymap()

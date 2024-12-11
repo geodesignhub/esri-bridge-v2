@@ -3,6 +3,7 @@ from data_definitions import (
     GeodesignhubProjectBounds,
     GeodesignhubSystem,
     GeodesignhubProjectData,
+    GeodesignhubProjectDetails,
     GeodesignhubDesignFeatureProperties,
     GeodesignhubFeatureProperties,
     GeodesignhubProjectCenter,
@@ -65,6 +66,30 @@ class GeodesignhubDataDownloader:
             project_id=self.project_id,
             token=self.apitoken,
         )
+
+    def get_project_details(
+        self,
+    ) -> Union[ErrorResponse, GeodesignhubProjectDetails]:
+        """This method gets details of a project from Geodesignhub"""
+        d = self.api_helper.get_project_details()
+        try:
+            assert d.status_code == 200
+        except AssertionError:
+            error_msg = ErrorResponse(
+                status=0,
+                message="Could not parse Project ID, Diagram ID or API Token ID. One or more of these were not found in your JSON request.",
+                code=400,
+            )
+            return error_msg
+
+        _raw_project_details = d.json()
+        project_details = GeodesignhubProjectDetails(
+            id=_raw_project_details['id'],
+            project_title=_raw_project_details['projecttitle'],
+            project_description=_raw_project_details['projectdesc'],
+        )
+
+        return project_details
 
     def download_project_systems(
         self,

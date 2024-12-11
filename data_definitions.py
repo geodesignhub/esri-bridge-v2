@@ -148,6 +148,13 @@ class GeodesignhubSystem:
 
 
 @dataclass
+class GeodesignhubProjectDetails:
+    id: str
+    project_title: str
+    project_description: str
+
+
+@dataclass
 class GeodesignhubSystemDetail:
     id: int
     name: str
@@ -213,6 +220,7 @@ class AGOLSubmissionPayload:
     agol_project_id: str
     session_id: str
     gdh_systems_information: AllSystemDetails
+    gdh_project_details: GeodesignhubProjectDetails
 
 
 @dataclass

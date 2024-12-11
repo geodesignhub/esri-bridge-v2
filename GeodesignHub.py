@@ -1,7 +1,7 @@
 import requests
 import json
 
-# Version: 1.3.7
+# Version: 1.4.2
 
 
 class GeodesignHubClient:
@@ -19,12 +19,13 @@ class GeodesignHubClient:
         self.token = token
         self.sec_url = url if url else "https://www.geodesignhub.com/api/v1/"
         self.session = requests.Session()
+        headers = {"Authorization": "Token " + self.token}
+        self.session.headers = headers
 
-    def get_project_id(self):
+    def get_project_details(self):
         """This method gets all systems for a particular project."""
         sec_url = self.sec_url + "projects" + "/" + self.project_id + "/"
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_all_systems(self):
@@ -32,8 +33,7 @@ class GeodesignHubClient:
         sec_url = (
             self.sec_url + "projects" + "/" + self.project_id + "/" + "systems" + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_project_center(self):
@@ -41,8 +41,7 @@ class GeodesignHubClient:
         sec_url = (
             self.sec_url + "projects" + "/" + self.project_id + "/" + "center" + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_single_system(self, system_id: int):
@@ -58,8 +57,7 @@ class GeodesignHubClient:
             + str(system_id)
             + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_constraints(self):
@@ -73,8 +71,7 @@ class GeodesignHubClient:
             + "constraints"
             + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_first_boundaries(self):
@@ -82,8 +79,7 @@ class GeodesignHubClient:
         sec_url = (
             self.sec_url + "projects" + "/" + self.project_id + "/" + "boundaries" + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_second_boundaries(self):
@@ -97,8 +93,7 @@ class GeodesignHubClient:
             + "secondboundaries"
             + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_project_bounds(self):
@@ -106,15 +101,13 @@ class GeodesignHubClient:
         sec_url = (
             self.sec_url + "projects" + "/" + self.project_id + "/" + "bounds" + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_project_tags(self):
         """Returns a list of tags created in the project."""
         sec_url = self.sec_url + "projects" + "/" + self.project_id + "/" + "tags" + "/"
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_all_design_teams(self):
@@ -122,8 +115,7 @@ class GeodesignHubClient:
         sec_url = (
             self.sec_url + "projects" + "/" + self.project_id + "/" + "cteams" + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_single_synthesis(self, teamid: int, synthesisid: str):
@@ -140,8 +132,7 @@ class GeodesignHubClient:
             + str(synthesisid)
             + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_single_synthesis_details(self, teamid: int, synthesisid: str):
@@ -158,8 +149,7 @@ class GeodesignHubClient:
             + str(synthesisid)
             + "/details/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_single_synthesis_esri_json(self, teamid: int, synthesisid: str):
@@ -176,8 +166,7 @@ class GeodesignHubClient:
             + str(synthesisid)
             + "/esri/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_single_synthesis_diagrams(self, teamid: int, synthesisid: str):
@@ -193,8 +182,7 @@ class GeodesignHubClient:
             + str(synthesisid)
             + "/diagrams/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_synthesis_timeline(self, teamid: int, synthesisid: str):
@@ -210,8 +198,7 @@ class GeodesignHubClient:
             + str(synthesisid)
             + "/timeline/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_synthesis_diagrams(self, teamid: int, synthesisid: str):
@@ -227,8 +214,7 @@ class GeodesignHubClient:
             + str(synthesisid)
             + "/diagrams/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_design_team_members(self, teamid: int):
@@ -247,8 +233,7 @@ class GeodesignHubClient:
             + "members"
             + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_synthesis_system_projects(self, sysid: int, teamid: int, synthesisid: str):
@@ -267,8 +252,7 @@ class GeodesignHubClient:
             + str(sysid)
             + "/projects/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def post_as_diagram(
@@ -296,17 +280,57 @@ class GeodesignHubClient:
             + projectorpolicy
             + "/"
         )
-        headers = {
-            "Authorization": "Token " + self.token,
-            "Content-Type": "application/json",
-        }
+
         postdata = {
             "geometry": geoms,
             "description": description,
             "featuretype": featuretype,
             "fundingtype": fundingtype,
         }
-        r = self.session.post(sec_url, headers=headers, data=json.dumps(postdata))
+        r = self.session.post(sec_url, data=json.dumps(postdata))
+        return r
+
+    def post_as_diagram_with_external_geometries(
+        self,
+        url: str,
+        layer_type: str,
+        projectorpolicy: str,
+        featuretype: str,
+        description: str,
+        sysid: str,
+        fundingtype: str,
+        cost: int,
+        costtype: str,
+        additional_metadata: dict = None,
+    ):
+        """Create a self.session object with correct headers and creds."""
+        securl = (
+            self.securl
+            + "projects"
+            + "/"
+            + self.project_id
+            + "/"
+            + "systems"
+            + "/"
+            + str(sysid)
+            + "/"
+            + "add/external/"
+            + projectorpolicy
+            + "/"
+        )
+        additional_metadata = additional_metadata if additional_metadata else {}
+
+        postdata = {
+            "url ": url,
+            "description": description,
+            "layer_type": layer_type,
+            "featuretype": featuretype,
+            "fundingtype": fundingtype,
+            "cost": cost,
+            "costtype": costtype,
+            "additional_metadata": additional_metadata,
+        }
+        r = self.session.post(securl, data=json.dumps(postdata))
         return r
 
     def get_single_diagram(self, diagid: int):
@@ -323,8 +347,7 @@ class GeodesignHubClient:
             + str(diagid)
             + "/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_all_diagrams(self):
@@ -332,8 +355,7 @@ class GeodesignHubClient:
         sec_url = (
             self.sec_url + "projects" + "/" + self.project_id + "/" + "diagrams/all/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def get_diagram_changeid(self, diagid: int):
@@ -350,8 +372,7 @@ class GeodesignHubClient:
             + str(diagid)
             + "/changeid/"
         )
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def post_as_ealuation_JSON(self, geoms, sysid: int, username: str = None):
@@ -370,22 +391,14 @@ class GeodesignHubClient:
         if username:
             sec_url += username + "/"
 
-        headers = {
-            "Authorization": "Token " + self.token,
-            "Content-Type": "application/json",
-        }
-
-        r = self.session.post(sec_url, headers=headers, data=json.dumps(geoms))
+        r = self.session.post(sec_url, data=json.dumps(geoms))
         return r
 
     def add_project_tags(self, tag_ids):
         """Add tags to a project"""
         sec_url = self.sec_url + "projects" + "/" + self.project_id + "/" + "tags" + "/"
-        headers = {
-            "Authorization": "Token " + self.token,
-            "Content-Type": "application/json",
-        }
-        r = self.session.post(sec_url, headers=headers, data=json.dumps(tag_ids))
+
+        r = self.session.post(sec_url, data=json.dumps(tag_ids))
         return r
 
     def get_project_plugins(self):
@@ -394,11 +407,7 @@ class GeodesignHubClient:
             self.sec_url + "projects" + "/" + self.project_id + "/" + "plugins" + "/"
         )
 
-        headers = {
-            "Authorization": "Token " + self.token,
-            "Content-Type": "application/json",
-        }
-        r = self.session.get(sec_url, headers=headers)
+        r = self.session.get(sec_url)
         return r
 
     def add_plugins_to_project(self, tag_ids):
@@ -407,12 +416,15 @@ class GeodesignHubClient:
             self.sec_url + "projects" + "/" + self.project_id + "/" + "plugins" + "/"
         )
 
-        headers = {
-            "Authorization": "Token " + self.token,
-            "Content-Type": "application/json",
-        }
+        r = self.session.post(sec_url, data=json.dumps(tag_ids))
+        return r
 
-        r = self.session.post(sec_url, headers=headers, data=json.dumps(tag_ids))
+    def create_diagram_groups(self, diagram_groups_payload):
+        """Create multiple diagram groups"""
+        sec_url = (
+            self.sec_url + "projects" + "/" + self.project_id + "/diagrams/groups/"
+        )
+        r = self.session.post(sec_url, data=json.dumps(diagram_groups_payload))
         return r
 
     def post_as_impact_JSON(self, geoms, sysid: int, username: str = None):
@@ -430,11 +442,8 @@ class GeodesignHubClient:
         )
         if username:
             sec_url += username + "/"
-        headers = {
-            "Authorization": "Token " + self.token,
-            "Content-Type": "application/json",
-        }
-        r = self.session.post(sec_url, headers=headers, data=json.dumps(geoms))
+
+        r = self.session.post(sec_url, data=json.dumps(geoms))
         return r
 
     def post_as_evaluation_GBF(self, geoms, sysid: int, username: str = None):
@@ -452,19 +461,15 @@ class GeodesignHubClient:
         )
         if username:
             sec_url += username + "/"
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.post(sec_url, headers=headers, files={"geoms.gbf": geoms})
+        r = self.session.post(sec_url, files={"geoms.gbf": geoms})
         return r
 
     def post_gdservice_JSON(self, geometry, jobid: str):
         """Create a self.session object with correct headers and creds."""
         sec_url = self.sec_url + "gdservices/callback/"
-        headers = {
-            "Authorization": "Token " + self.token,
-            "Content-Type": "application/json",
-        }
+
         data = {"geometry": geometry, "jobid": jobid}
-        r = self.session.post(sec_url, headers=headers, data=json.dumps(data))
+        r = self.session.post(sec_url, data=json.dumps(data))
         return r
 
     def post_as_impact_GBF(self, geoms, sysid: int, username: str = None):
@@ -482,32 +487,19 @@ class GeodesignHubClient:
         )
         if username:
             sec_url += username + "/"
-        headers = {"Authorization": "Token " + self.token}
-        r = self.session.post(sec_url, headers=headers, files={"geoms.gbf": geoms})
+        r = self.session.post(sec_url, files={"geoms.gbf": geoms})
         return r
 
     def create_new_project(self, project_create_payload):
         """Create a self.session object with correct headers and creds."""
         sec_url = self.sec_url + "projects/create/"
 
-        headers = {
-            "Authorization": "Token " + self.token,
-            "Content-Type": "application/json",
-        }
-        r = self.session.post(
-            sec_url, headers=headers, data=json.dumps(project_create_payload)
-        )
+        r = self.session.post(sec_url, data=json.dumps(project_create_payload))
         return r
 
     def create_new_igc_project(self, project_create_payload):
         """Create a self.session object with correct headers and creds."""
         sec_url = self.sec_url + "projects/create-igc-project/"
 
-        headers = {
-            "Authorization": "Token " + self.token,
-            "Content-Type": "application/json",
-        }
-        r = self.session.post(
-            sec_url, headers=headers, data=json.dumps(project_create_payload)
-        )
+        r = self.session.post(sec_url, data=json.dumps(project_create_payload))
         return r
