@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "hello-flask-poetry"
+version = "0.1.0"
+description = ""
+authors = ["Donatas Rasiukevicius <donatas@fly.io>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+Flask==3.0.3
+MarkupSafe==2.1.5
+Werkzeug==3.0.4
+geojson==3.1.0
+gunicorn==23.0.0
+itsdangerous==2.2.0
+requests==2.31.0
+shapely==2.0.6
+cligj==0.7.2
+redis==5.0.8
+rq==1.16.2
+dacite==1.8.1
+python-dotenv==1.0.1
+numpy==1.26.4
+pyproj==3.6.1
+Flask-Babel==4.0.0
+flask-wtf==1.2.1
+Bootstrap-Flask==2.4.0
+arcgis==2.3.1
+Flask-SSE==1.0.0
+pandas==2.1.4
+pillow==10.4.0
+PyYAML==6.0.2
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
