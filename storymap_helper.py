@@ -8,7 +8,7 @@ from arcgis.apps.storymap.story_content import (
     Text,
     TextStyles,
     Separator,
-    Gallery
+    Gallery,
 )
 
 import os
@@ -61,7 +61,6 @@ class StoryMapPublisher:
         # Create the StoryMap object with the title
         self._storymap = self.create_new_storymap()
 
-
     def _replace_placeholders(self):
         """Replace placeholders in the YAML template with actual values."""
         # Dynamic values to be substituted
@@ -75,7 +74,9 @@ class StoryMapPublisher:
         placeholders = self._storymap_template.get("placeholders", {})
 
         if not isinstance(placeholders, dict):
-            raise ValueError("Expected 'placeholders' to be a dictionary in the YAML template.")
+            raise ValueError(
+                "Expected 'placeholders' to be a dictionary in the YAML template."
+            )
 
         # Iterate over placeholders and perform replacements
         yaml_str = yaml.dump(self._storymap_template)
@@ -86,37 +87,46 @@ class StoryMapPublisher:
         # Reload the updated YAML string into the template
         self._storymap_template = yaml.safe_load(yaml_str)
 
-
     def create_new_storymap(self) -> StoryMap:
         """Create a blank StoryMap with the given title and return the instance."""
         # Use the title from the template or fallback to a default
 
         my_geodesignhub_project_story = StoryMap()
         return my_geodesignhub_project_story
-    
+
     def populate_storymap_from_template(self):
         """Populate the StoryMap using the YAML template."""
         # Set the cover
         self._set_cover()
 
-        # Iterate over the panels and add content accordingly
-        panels = self._storymap_template.get("panels", [])
-        for panel in panels:
-            panel_type = panel.get("type")
-            if panel_type == "text":
-                self._add_text(panel)
-            elif panel_type == "map":
-                self._add_map(panel)
-            elif panel_type == "image":
-                self._add_image(panel)
-            elif panel_type == "gallery":
-                self._add_gallery(panel)
-            elif panel_type == "separator":
-                self._add_separator()
-            elif panel_type == "table":
-                self._add_table(panel)
-            else:
-                logger.warning(f"Unsupported panel type: {panel_type}")
+        # Iterate over the sections
+        sections = self._storymap_template.get("sections", [])
+        for section in sections:
+            section_title = section.get("title", "Untitled Section")
+            panels = section.get("panels", [])
+
+            # Add a heading for the section
+            self._add_text(
+                {"content_type": "text", "style": "heading", "text": section_title}
+            )
+
+            # Add the panels within the section
+            for panel in panels:
+                content_type = panel.get("content_type")
+                if content_type == "text":
+                    self._add_text(panel)
+                elif content_type == "map":
+                    self._add_map(panel)
+                elif content_type == "image":
+                    self._add_image(panel)
+                elif content_type == "gallery":
+                    self._add_gallery(panel)
+                elif content_type == "separator":
+                    self._add_separator()
+                elif content_type == "table":
+                    self._add_table(panel)
+                else:
+                    logger.warning(f"Unsupported panel content_type: {content_type}")
 
     def _set_cover(self):
         """Set the cover of the StoryMap."""
@@ -127,7 +137,10 @@ class StoryMapPublisher:
         cover = self._storymap_template.get("cover", {})
         title = cover.get("title", "Project Title")
         summary = cover.get("subtitle", "Project Description")
-        cover_image_url = cover.get("cover_image_url", "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/7d973317b8434f298e4c543f37e0b0c8/data")
+        cover_image_url = cover.get(
+            "cover_image_url",
+            "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/7d973317b8434f298e4c543f37e0b0c8/data",
+        )
 
         # Use the `cover()` method on `self._storymap` to set these properties directly
         self._storymap.cover(
@@ -138,7 +151,6 @@ class StoryMapPublisher:
             image=cover_image_url,
         )
 
-
     def _add_map(self, panel):
         logger.info("Adding the map...")
         """Add a map element to the StoryMap."""
@@ -148,7 +160,7 @@ class StoryMapPublisher:
             try:
                 map_item = Item(gis=self._gis, itemid=item_id)
                 new_map = Map(item=map_item)
-          
+
                 # Clear conflicting properties
                 new_map._zoom = None  # Ensure zoom doesn't override extent
                 new_map._viewpoint = None  # Clear any predefined viewpoint
@@ -162,7 +174,6 @@ class StoryMapPublisher:
         else:
             logger.warning("Map item ID is missing.")
 
-    
     def _add_image(self, panel):
         """Add a single image element to the StoryMap."""
         logger.info("Adding a single image...")
@@ -185,14 +196,17 @@ class StoryMapPublisher:
             image = Image(path=processed_image_path)
             self._storymap.add(image)
             image.caption = caption
-            logger.info(f"Image added successfully: {image_url} with caption: '{caption}'")
+            logger.info(
+                f"Image added successfully: {image_url} with caption: '{caption}'"
+            )
         except Exception as e:
             logger.error(f"Failed to add image: {image_url} - {e}")
         finally:
             # Clean up the converted image file
-            if processed_image_path and processed_image_path.startswith(tempfile.gettempdir()):
+            if processed_image_path and processed_image_path.startswith(
+                tempfile.gettempdir()
+            ):
                 os.remove(processed_image_path)
-
 
     def _add_text(self, panel):
         """Add a text element to the StoryMap."""
@@ -245,9 +259,13 @@ class StoryMapPublisher:
                     gallery.add_images([image])
                     image.caption = caption
                     processed_image_paths.append(processed_image_path)
-                    logger.info(f"Image added to gallery: {image_url} with caption: '{caption}'")
+                    logger.info(
+                        f"Image added to gallery: {image_url} with caption: '{caption}'"
+                    )
                 except Exception as e:
-                    logger.error(f"Failed to add image to gallery - URL: {image_url} - {e}")
+                    logger.error(
+                        f"Failed to add image to gallery - URL: {image_url} - {e}"
+                    )
 
             # Set the gallery's caption
             gallery_caption = panel.get("caption", "Gallery Caption")
@@ -283,41 +301,42 @@ class StoryMapPublisher:
             num_columns = len(headers)
 
             if num_data_rows > 9 or num_data_rows < 1:
-                logger.warning(f"Invalid number of rows ({num_data_rows}). Must be between 1 and 9. Skipping.")
+                logger.warning(
+                    f"Invalid number of rows ({num_data_rows}). Must be between 1 and 9. Skipping."
+                )
                 return
 
             if num_columns > 8 or num_columns < 1:
-                logger.warning(f"Invalid number of columns ({num_columns}). Must be between 1 and 8. Skipping.")
+                logger.warning(
+                    f"Invalid number of columns ({num_columns}). Must be between 1 and 8. Skipping."
+                )
                 return
 
-            # Create the Table instance with correct total size (header + data rows)
+            # Create the Table instance
             table = Table(rows=num_data_rows + 1, columns=num_columns)
-            self._storymap.add(table)  # Add table to the StoryMap
+            self._storymap.add(table)
 
             # Construct the DataFrame
-            # Create structured rows with each cell as a dictionary containing "value"
             structured_data = []
 
             # Add the header row
-            structured_data.append([{ "value": header } for header in headers])
+            structured_data.append([{"value": header} for header in headers])
 
             # Add the data rows
             for row in rows:
-                structured_data.append([{ "value": str(cell) } for cell in row])
+                structured_data.append([{"value": str(cell)} for cell in row])
 
             # Convert structured_data into a DataFrame
-            df = pd.DataFrame(
-                structured_data,
-                columns=headers
+            df = pd.DataFrame(structured_data)
+
+            # Assign the DataFrame to the table's content
+            table.content = df
+
+            logger.info(
+                f"Table added successfully with headers: {headers} and {len(rows)} data rows."
             )
-
-            # Set the content of the table using the DataFrame
-            # table.content = df
-
-            logger.info(f"Table added successfully with headers: {headers} and {len(rows)} data rows.")
         except Exception as e:
             logger.error(f"Failed to add table to StoryMap: {e}")
-
 
     def _process_image(self, image_url):
         """Download and convert an image to JPEG if necessary."""
@@ -326,10 +345,14 @@ class StoryMapPublisher:
 
         try:
             # Download the image
-            response = requests.get(image_url, stream=True, headers={
-                "User-Agent": "Mozilla/5.0",
-                "Accept-Language": "en-US,en;q=0.9",
-            })
+            response = requests.get(
+                image_url,
+                stream=True,
+                headers={
+                    "User-Agent": "Mozilla/5.0",
+                    "Accept-Language": "en-US,en;q=0.9",
+                },
+            )
             response.raise_for_status()
 
             # Save to a temporary file
@@ -360,16 +383,21 @@ class StoryMapPublisher:
         self._storymap.save(publish=True)
 
         # Retrieve title and description from the template or set defaults
-        storymap_title = self._storymap_template.get("name", "Geodesignhub StoryMap")
-        storymap_description = self._storymap_template.get("description", "A story map for the Geodesignhub project")
+        storymap_title = self._storymap_template.get(
+            "name", "Geodesignhub ESRI Bridge Alpha"
+        )
+        storymap_description = self._storymap_template.get(
+            "description", "A story map for the Geodesignhub project"
+        )
 
         # Update the title and description after saving
         if self._storymap._item:  # Ensure _item is initialized
             logger.info("Updating StoryMap item properties (title and description)...")
-            self._storymap._item.update({
-            "title": storymap_title,
-            "snippet": storymap_description
-            })
+            self._storymap._item.update(
+                {"title": storymap_title, "snippet": storymap_description}
+            )
             logger.info("StoryMap item properties updated successfully.")
         else:
-            logger.error("Failed to update title and description: StoryMap item not initialized.")
+            logger.error(
+                "Failed to update title and description: StoryMap item not initialized."
+            )
