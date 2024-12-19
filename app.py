@@ -160,6 +160,7 @@ def export_design():
         cteam_id=design_team_id,
         apitoken=apitoken,
     )
+    _gdh_project_details = my_geodesignhub_downloader.get_project_details()
     _gdh_systems_raw = my_geodesignhub_downloader.download_project_systems()
     logger.info("INFO: Inside the home function")
 
@@ -202,6 +203,7 @@ def export_design():
             agol_project_id=agol_project_id,
             session_id=session_id,
             gdh_systems_information=_gdh_systems,
+            gdh_project_details=_gdh_project_details,
         )
         
         agol_submission_job = q.enqueue(

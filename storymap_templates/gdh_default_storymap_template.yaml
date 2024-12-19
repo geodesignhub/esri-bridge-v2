@@ -3,8 +3,10 @@
 name: "Geodesignhub ESRI Bridge Alpha"
 
 placeholders:
-  project_title: "{design_name}"
-  project_description: "Geodesignhub negotiation with project id {project_id}"
+
+  project_title: "Storymap for {design_name}"
+  project_description: "{verbose_project_description}"
+
   negotiated_design_item_id: "{negotiated_design_item_id}"
 
 cover:
