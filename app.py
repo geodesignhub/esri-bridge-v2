@@ -62,7 +62,7 @@ dictConfig(
                 "formatter": "default",
             }
         },
-        "root": {"level": "DEBUG", "handlers": ["console"]},
+        "root": {"level": "INFO", "handlers": ["console"]},
     }
 )
 logger = logging.getLogger("esri-gdh-bridge")
@@ -203,7 +203,7 @@ def export_design():
             session_id=session_id,
             gdh_systems_information=_gdh_systems,
         )
-
+        
         agol_submission_job = q.enqueue(
             utils.publish_design_to_agol,
             agol_submission_payload,

@@ -3,7 +3,7 @@ from typing import List, Union, Dict, Optional
 from geojson import FeatureCollection
 from enum import Enum
 from arcgis.gis import Item
-from arcgis.mapping import WebMap
+from arcgis.map import Map
 
 
 def custom_asdict_factory(data):
@@ -225,7 +225,7 @@ class AGOLFeatureLayerPublishingResponse:
 @dataclass
 class AGOLWebMapPublishingResponse:
     status: int
-    item: Union[None, WebMap]
+    item: Union[None, Map]
 
 
 @dataclass

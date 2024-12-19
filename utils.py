@@ -20,7 +20,7 @@ import logging
 import tempfile
 import os
 import pandas as pd
-from arcgis.mapping import WebMap
+from arcgis.map import Map
 from storymap_helper import StoryMapPublisher
 from esri_fields_schema_helper import AGOLItemSchemaGenerator
 
@@ -38,7 +38,7 @@ r = get_redis()
 def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
     """This method one by one submits the designs and the tags data to AGOL"""
     agol_token = agol_submission_payload.agol_token
-    my_arc_gis_helper = ArcGISHelper(agol_token)
+    my_arc_gis_helper = ArcGISHelper(agol_token=agol_token, project_name=agol_submission_payload.design_data.gdh_design_details.project_name)   
     agol_export_status = AGOLExportStatus(status=0, message="", success_url="")
 
     submission_status_details = my_arc_gis_helper.export_design_json_to_agol(
@@ -92,9 +92,10 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
 
 
 class ArcGISHelper:
-    def __init__(self, agol_token: str):
+    def __init__(self, agol_token: str, project_name:str):
         self.agol_token = agol_token
         self.gis = self.create_gis_object()
+        self.folder = self.create_folder(project_name)
 
     def get_gis(self) -> GIS:
         return self.gis
@@ -102,11 +103,23 @@ class ArcGISHelper:
     def create_gis_object(self) -> GIS:
         gis = GIS("https://www.arcgis.com/", token=self.agol_token)
         return gis
+    
+    def create_folder(self, project_name:str):
+        """Create a folder for the user in ArcGIS Online"""
+        folder_name = "Geodesignhub Data for " + project_name
+        folders_obj = self.gis.content.folders
+        item_folder = folders_obj.get(folder=folder_name)
+        if item_folder: 
+            return item_folder  
+        else:
+            user = self.gis.users.me
+            folder = user.folders.create(folder_name)
+            return folder
 
     def check_if_tags_exist(self, project_id: str, gis: GIS) -> bool:
         object_already_exists = False
         search_results = gis.content.search(
-            query=f"snippet:{project_id}", item_type="CSV"
+            query=f"snippet:{project_id}-tags", item_type="CSV", max_items=1
         )
         if search_results:
             object_already_exists = True
@@ -135,7 +148,7 @@ class ArcGISHelper:
 
         agol_item_details = AGOLItemDetails(
             title=f"Tags for {project_id}",
-            snippet=project_id,
+            snippet=project_id + "-tags",
             description="All project tags as a CSV",
             type="CSV",
         )
@@ -144,14 +157,16 @@ class ArcGISHelper:
             gis=self.gis, project_id=project_id
         )
         if tags_exist_in_profile:
-            logger.info("Design already exists in profile, it cannot be re-uploaded")
+            logger.info(
+                "Tags for this project already exists in profile, they cannot be re-uploaded"
+            )
             return 0
 
         else:
             temp_csv_file = tempfile.NamedTemporaryFile(mode="w", delete=False)
             tags_df.to_csv(temp_csv_file.name, encoding="utf-8", index=False)
             logger.info("Uploading tags to AGOL...")
-            csv_item = self.gis.content.add(
+            csv_item = self.folder.add(
                 item_properties=asdict(agol_item_details), data=temp_csv_file.name
             )
             logger.info("Tags uploaded successfully...")
@@ -230,7 +245,7 @@ class ArcGISHelper:
         _gdh_design_details = design_data.gdh_design_details
         logger.info("Getting the published feature layer...")
         new_published_layers = feature_layer_item.layers
-        wm = WebMap()
+        my_map = Map()
 
         # Initialize extent variable to store combined extent
         combined_extent = None
@@ -254,7 +269,7 @@ class ArcGISHelper:
             new_published_layer.renderer = renderer
             # set the renderer on the layer service
             my_layer_manager.update_definition({"drawingInfo": {"renderer": renderer}})
-            wm.add_layer(new_published_layer)
+            my_map.content.add(new_published_layer)
 
             # Combine extents for the webmap
             layer_extent = new_published_layer.properties.extent
@@ -270,11 +285,11 @@ class ArcGISHelper:
                         "ymax": max(combined_extent["ymax"], layer_extent["ymax"]),
                         "spatialReference": layer_extent["spatialReference"],
                     }
-        
+
         # Set the webmap's extent
         if combined_extent:
-            wm.extent = combined_extent
-        
+            my_map.extent = combined_extent
+
         web_map_title = "Webmap for {design_name}".format(
             design_name=_gdh_design_details.design_name
         )
@@ -282,11 +297,11 @@ class ArcGISHelper:
             "title": web_map_title,
             "snippet": "This map shows design synthesis details from a negotiation in Geodesignhub",
             "tags": "Geodesignhub",
-            "extent": wm.extent, # Set extent property for wm
+            "extent": my_map.extent,  # Set extent property for wm
         }
 
         # Call the save() with web map item's properties.
-        web_map_item = wm.save(item_properties=web_map_properties)
+        web_map_item = my_map.save(item_properties=web_map_properties)
         return web_map_item
 
     def export_design_json_to_agol(
@@ -319,7 +334,7 @@ class ArcGISHelper:
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as output:
             output.write(geojson.dumps(_gdh_design_feature_collection))
 
-        geojson_item = self.gis.content.add(
+        geojson_item = self.folder.add(
             item_properties=asdict(agol_item_details), data=output.name
         )
         os.unlink(output.name)
@@ -329,10 +344,7 @@ class ArcGISHelper:
         # )
         # publish_parameters = my_esri_field_schema_generator.publish_parameters
 
-
-        feature_layer_item = geojson_item.publish(
-            file_type="geojson"
-        )
+        feature_layer_item = geojson_item.publish(file_type="geojson")
         feature_layer_item_url = feature_layer_item.url
         # the layer
         logger.info("Layer is published as Feature Collection")
