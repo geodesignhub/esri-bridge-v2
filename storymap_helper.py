@@ -9,6 +9,7 @@ from arcgis.apps.storymap.story_content import (
     TextStyles,
     Separator,
     Gallery,
+    Cover,
 )
 
 import os
@@ -154,6 +155,7 @@ class StoryMapPublisher:
             by_line="Geodesignhub",  # Replace with actual byline if available in the template
             image=cover_image_url,
         )
+        
 
     def _add_map(self, panel):
         logger.info("Adding the map...")

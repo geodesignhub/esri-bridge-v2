@@ -205,7 +205,7 @@ def export_design():
             gdh_systems_information=_gdh_systems,
             gdh_project_details=_gdh_project_details,
         )
-        
+                
         agol_submission_job = q.enqueue(
             utils.publish_design_to_agol,
             agol_submission_payload,
