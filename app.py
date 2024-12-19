@@ -270,7 +270,7 @@ def export_design():
         message_type=message_type,
         message=confirmation_message,
         geodesignhub_design_feature_count=_num_features,
-        geodesignhub_design_name="V2",
+        geodesignhub_design_name=gdh_data_for_storage.design_name,
         session_id=session_id,
     )
 

@@ -10,6 +10,8 @@ from data_definitions import (
     GeodesignhubProjectTags,
     AllSystemDetails,
     AGOLFeatureLayerPublishingResponse,
+    AGOLWebMapCombinedExtent,
+    AGOLWebMapSpatialExtent
 )
 from PIL import ImageColor
 import geojson
@@ -18,6 +20,7 @@ import json
 from dataclasses import asdict
 import logging
 import tempfile
+from dacite import from_dict
 import os
 import pandas as pd
 from arcgis.map import Map
@@ -112,7 +115,7 @@ class ArcGISHelper:
         """Create a folder for the user in ArcGIS Online"""
         cm = self.gis.content
         folders_obj = cm.folders
-        folder_name = "Geodesignhub Data for " + project_title
+        folder_name = "Data from Geodesignhub for " + project_title
         item_folder = folders_obj.get(folder=folder_name)
         if item_folder:
             return item_folder
@@ -132,11 +135,12 @@ class ArcGISHelper:
 
         return object_already_exists
 
-    def check_if_design_exists(self, design_id: str, gis: GIS) -> bool:
+    def check_if_design_exists(self, project_id: str, design_id: str, gis: GIS) -> bool:
         object_already_exists = False
         search_results = gis.content.search(
-            query=f"description:{design_id}", item_type="GeoJson"
+            query=f"snippet:{design_id}-{project_id}", item_type="GeoJson"
         )
+
         if search_results:
             object_already_exists = True
 
@@ -153,7 +157,7 @@ class ArcGISHelper:
         tags_df = pd.json_normalize(t["tags"])
 
         agol_item_details = AGOLItemDetails(
-            title=f"Tags for {project_id}",
+            title="Geodesignhub Project tags",
             snippet=project_id + "-tags",
             description="All project tags as a CSV",
             type="CSV",
@@ -284,20 +288,21 @@ class ArcGISHelper:
             layer_extent = new_published_layer.properties.extent
             if layer_extent:
                 if not combined_extent:
-                    combined_extent = layer_extent
+                    combined_extent = from_dict(data = dict(layer_extent), data_class = AGOLWebMapCombinedExtent)
                 else:
                     # Expand the combined extent to include this layer's extent
-                    combined_extent = {
-                        "xmin": min(combined_extent["xmin"], layer_extent["xmin"]),
-                        "ymin": min(combined_extent["ymin"], layer_extent["ymin"]),
-                        "xmax": max(combined_extent["xmax"], layer_extent["xmax"]),
-                        "ymax": max(combined_extent["ymax"], layer_extent["ymax"]),
-                        "spatialReference": layer_extent["spatialReference"],
-                    }
+                    combined_extent = AGOLWebMapCombinedExtent(
+                        xmin= min(combined_extent["xmin"], layer_extent["xmin"]),
+                        ymin= min(combined_extent["ymin"], layer_extent["ymin"]),
+                        xmax= max(combined_extent["xmax"], layer_extent["xmax"]),
+                        ymax= max(combined_extent["ymax"], layer_extent["ymax"]),
+                        spatialReference=  AGOLWebMapSpatialExtent(wkid=layer_extent["spatialReference"]['wkid'],latestWkid= layer_extent["spatialReference"]['latestWkid'])
+                        )
+                    
 
         # Set the webmap's extent
         if combined_extent:
-            my_map.extent = combined_extent
+            my_map.extent = asdict(combined_extent) # AGOL expects a dictionary for extents
 
         web_map_title = "Webmap for {design_name}".format(
             design_name=_gdh_design_details.design_name
@@ -322,10 +327,13 @@ class ArcGISHelper:
         _gdh_design_details = design_data.gdh_design_details
         _gdh_project_systems = gdh_systems_information
         design_id = _gdh_design_details.design_id
+        project_id = _gdh_design_details.design_id
+        agol_snippet = design_id + "-" + project_id
 
         design_exists_in_profile = self.check_if_design_exists(
-            gis=self.gis, design_id=design_id
+            gis=self.gis, design_id=design_id, project_id=project_id
         )
+
         if design_exists_in_profile:
             logger.info("Design already exists in profile, it cannot be  re-uploaded")
             return AGOLFeatureLayerPublishingResponse(status=0, item=None, url="")
@@ -334,8 +342,8 @@ class ArcGISHelper:
             _gdh_design_details.design_geojson.geojson
         )
         agol_item_details = AGOLItemDetails(
-            title=_gdh_design_details.design_name,
-            snippet=_gdh_design_details.project_id,
+            title=_gdh_design_details.design_name +"-geojson",
+            snippet=agol_snippet,
             description=design_id,
             type="GeoJson",
         )
@@ -351,8 +359,8 @@ class ArcGISHelper:
         # )
         # publish_parameters = my_esri_field_schema_generator.publish_parameters
         if geojson_add_job.done():
-            geojson_item = geojson_add_job.result()
-            feature_layer_item = geojson_item.publish(file_type="geojson")
+            geojson_item = geojson_add_job.result()            
+            feature_layer_item = geojson_item.publish()
             feature_layer_item_url = feature_layer_item.url
         os.unlink(output.name)
         output.delete = True

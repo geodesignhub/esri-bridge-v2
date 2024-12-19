@@ -330,3 +330,16 @@ class AGOLItemSchema:
                 ),
             ],
         }
+
+@dataclass
+class AGOLWebMapSpatialExtent:
+    wkid:int
+    latestWkid: int
+
+@dataclass
+class AGOLWebMapCombinedExtent:
+    xmin: float
+    ymin: float
+    xmax: float
+    ymax: float
+    spatialReference: AGOLWebMapSpatialExtent
