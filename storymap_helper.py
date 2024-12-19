@@ -390,7 +390,7 @@ class StoryMapPublisher:
 
         # Retrieve title and description from the template or set defaults
         storymap_title = self._storymap_template.get(
-            "name", "Geodesignhub ESRI Bridge Alpha"
+            "name", "Geodesignhub Storymap"
         )
         storymap_description = self._storymap_template.get(
             "description", "A story map for the Geodesignhub project"
