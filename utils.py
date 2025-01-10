@@ -80,19 +80,23 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
         # Sleep for 10 seconds to allow for layers to be updated
         # logging.info("Sleeping for 15 seconds to allow for publishing...")
         # time.sleep(15)
-        my_webmap_item = my_arc_gis_helper.publish_feature_layer_as_webmap(
-            feature_layer_item=submission_status_details.item,
-            design_data=agol_submission_payload.design_data,
-            gdh_systems_information=agol_submission_payload.gdh_systems_information,
-        )
-        my_storymap_publisher = StoryMapPublisher(
-            design_data=agol_submission_payload.design_data,
-            gdh_systems_information=agol_submission_payload.gdh_systems_information,
-            negotiated_design_item_id=my_webmap_item.itemid,
-            gdh_project_details=agol_submission_payload.gdh_project_details,
-            gis=my_arc_gis_helper.get_gis(),
-        )
-        my_storymap_publisher.publish_storymap()
+        if agol_submission_payload.include_webmap:
+            logger.info("Webmap included in the export")
+            my_webmap_item = my_arc_gis_helper.publish_feature_layer_as_webmap(
+                feature_layer_item=submission_status_details.item,
+                design_data=agol_submission_payload.design_data,
+                gdh_systems_information=agol_submission_payload.gdh_systems_information,
+            )
+        if agol_submission_payload.include_storymap:
+            logger.info("Storymap included in the export")
+            my_storymap_publisher = StoryMapPublisher(
+                design_data=agol_submission_payload.design_data,
+                gdh_systems_information=agol_submission_payload.gdh_systems_information,
+                negotiated_design_item_id=my_webmap_item.itemid,
+                gdh_project_details=agol_submission_payload.gdh_project_details,
+                gis=my_arc_gis_helper.get_gis(),
+            )
+            my_storymap_publisher.publish_storymap()
 
     r.set(submission_processing_result_key, json.dumps(asdict(agol_export_status)))
     r.expire(submission_processing_result_key, time=6000)

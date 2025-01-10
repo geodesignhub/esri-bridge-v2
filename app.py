@@ -36,7 +36,7 @@ from rq import Queue
 from worker import conn
 from flask_wtf import FlaskForm, CSRFProtect
 from flask_bootstrap import Bootstrap5
-from wtforms import SubmitField, HiddenField
+from wtforms import BooleanField, SubmitField, HiddenField
 import logging
 from logging.config import dictConfig
 import re
@@ -102,6 +102,8 @@ class ExportConfirmationForm(FlaskForm):
     agol_token = HiddenField()
     agol_project_id = HiddenField()
     session_id = HiddenField()
+    webmap = BooleanField("Include Webmap")
+    storymap = BooleanField("Include Storymap")
     submit = SubmitField(label="Export Design to ArcGIS Online →")
 
 
@@ -173,6 +175,10 @@ def export_design():
         session_key = session_id + "_design"
         design_details_str = r.get(session_key)
 
+        # Capture checkbox values
+        include_webmap = export_confirmation_form.webmap.data
+        include_storymap = export_confirmation_form.storymap.data
+
         tags_key = session_id + "_tags"
 
         project_tags_str = r.get(tags_key)
@@ -204,8 +210,10 @@ def export_design():
             session_id=session_id,
             gdh_systems_information=_gdh_systems,
             gdh_project_details=_gdh_project_details,
+            include_webmap=include_webmap,  # Add this field to your payload class
+            include_storymap=include_storymap,  # Add this field to your payload class
         )
-                
+
         agol_submission_job = q.enqueue(
             utils.publish_design_to_agol,
             agol_submission_payload,
