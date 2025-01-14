@@ -322,6 +322,28 @@ class ArcGISHelper:
         web_map_item = my_map.save(item_properties=web_map_properties)
         return web_map_item
 
+    def remove_code_prefix_from_tag_codes(self, feature_layer):
+        """
+        Removes the 'CODE:' prefix from the 'tag_codes' field
+        in all features of the given feature layer.
+        """
+        query_res = feature_layer.query(where="1=1", out_fields="tag_codes")
+        if not query_res.features:
+            return
+
+        updated_features = []
+        for feat in query_res.features:
+            old_val = feat.attributes.get("tag_codes")
+            if old_val and old_val.startswith("CODE:"):
+                feat.attributes["tag_codes"] = old_val.replace("CODE:", "", 1)
+                updated_features.append(feat)
+
+        if updated_features:
+            result = feature_layer.edit_features(updates=updated_features)
+            logger.info(f"Removed CODE: prefix from {len(updated_features)} features. Edit result: {result}")
+        else:
+            logger.info("No 'CODE:' prefix found to remove.")
+
     def export_design_json_to_agol(
         self,
         design_data: ArcGISDesignPayload,
@@ -339,62 +361,107 @@ class ArcGISHelper:
         )
 
         if design_exists_in_profile:
-            logger.info("Design already exists in profile, it cannot be  re-uploaded")
+            logger.info("Design already exists in profile, it cannot be re-uploaded")
             return AGOLFeatureLayerPublishingResponse(status=0, item=None, url="")
 
+        # Extract the FeatureCollection
         _gdh_design_feature_collection: FeatureCollection = (
             _gdh_design_details.design_geojson.geojson
         )
+
+        for feature in _gdh_design_feature_collection["features"]:
+                props = feature["properties"]
+                if "tag_codes" in props:
+                    original_val = str(props["tag_codes"])
+                    props["tag_codes"] = f"CODE:{original_val}"
+
+        # Fallback to a safe design name if it's empty or null
+        safe_design_name = _gdh_design_details.design_name.strip() if _gdh_design_details.design_name else "UntitledDesign"
+        if not safe_design_name:
+            safe_design_name = "UntitledDesign"
+
+        # Prepare item details
         agol_item_details = AGOLItemDetails(
-            title=_gdh_design_details.design_name +"-geojson",
+            title=f"{safe_design_name}-geojson",
             snippet=agol_snippet,
             description=design_id,
             type="GeoJson",
         )
 
+        # Write GeoJSON to temp file
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as output:
             output.write(geojson.dumps(_gdh_design_feature_collection))
+            temp_geojson_path = output.name
 
+        # Add the item
         geojson_add_job = self.folder.add(
-            item_properties=asdict(agol_item_details), file=output.name
+            item_properties=asdict(agol_item_details),
+            file=temp_geojson_path
         )
-        # my_esri_field_schema_generator = AGOLItemSchemaGenerator(
-        # item_name=_gdh_design_details.design_name
-        # )
-        # publish_parameters = my_esri_field_schema_generator.publish_parameters
+
+        # Note: This code is not functioning as expected. The 'tag_codes' field is not being correctly set to 'esriFieldTypeString'.
+        # For now, we set the field to a string by adding a prefix value and then removing the prefix, avoiding ESRI's verbose JSON payloads 
+
+        # publish_parameters = {
+        #     "name": f"{_gdh_design_details.design_name}_{design_id}",
+        #     "layerInfo": {
+        #         "fields": [
+        #             {
+        #                 "name": "tag_codes",
+        #                 "type": "esriFieldTypeString",
+        #                 "alias": "tag_codes",
+        #                 "length": 255,
+        #             }
+        #         ]
+        #     }
+        # }
+
         if geojson_add_job.done():
-            geojson_item = geojson_add_job.result()            
+            geojson_item = geojson_add_job.result()
+
             feature_layer_item = geojson_item.publish()
+
+            # feature_layer_item = geojson_item.publish(
+            #     publish_parameters=publish_parameters
+            # )
+
             feature_layer_item_url = feature_layer_item.url
-        os.unlink(output.name)
-        output.delete = True
-        # the layer
-        logger.info("Layer is published as Feature Collection")
-        logger.info("Getting the published feature layer...")
-        new_published_layers = feature_layer_item.layers
 
-        for new_published_layer in new_published_layers:
-            logger.info(
-                f"{new_published_layer.properties.name} - {new_published_layer.properties.geometryType}"
-            )
+            # Clean up temp file
+            os.unlink(temp_geojson_path)
+            output.delete = True
 
-            logger.info("Getting the layer manager...")
-            # the layer manager
-            test_layer_manager = new_published_layer.manager
-            # update layer renderer
-            logger.info("Update layer renderer...")
-            test_layer_manager.update_definition(
-                {
-                    "drawingInfo": {
-                        "renderer": self.create_uv_renderer(
-                            geometry_type=new_published_layer.properties.geometryType,
-                            unique_field_name="system_name",
-                            gdh_project_systems=_gdh_project_systems,
-                        )
+            logger.info("Layer is published as Feature Collection")
+            logger.info("Getting the published feature layer...")
+            new_published_layers = feature_layer_item.layers
+
+            for new_published_layer in new_published_layers:
+                logger.info(
+                    f"{new_published_layer.properties.name} - {new_published_layer.properties.geometryType}"
+                )
+
+                # The layer manager
+                test_layer_manager = new_published_layer.manager
+
+                # Update layer renderer
+                logger.info("Update layer renderer...")
+                test_layer_manager.update_definition(
+                    {
+                        "drawingInfo": {
+                            "renderer": self.create_uv_renderer(
+                                geometry_type=new_published_layer.properties.geometryType,
+                                unique_field_name="system_name",
+                                gdh_project_systems=_gdh_project_systems,
+                            )
+                        }
                     }
-                }
+                )
+                self.remove_code_prefix_from_tag_codes(new_published_layer)
+
+
+   
+            return AGOLFeatureLayerPublishingResponse(
+                status=1, item=feature_layer_item, url=feature_layer_item_url
             )
 
-        return AGOLFeatureLayerPublishingResponse(
-            status=1, item=feature_layer_item, url=feature_layer_item_url
-        )
+        return AGOLFeatureLayerPublishingResponse(status=0, item=None, url="")
