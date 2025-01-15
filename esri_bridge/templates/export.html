@@ -1,46 +1,95 @@
-{% extends "layout.html" %} 
+{% extends "layout.html" %}
 {% from 'bootstrap5/form.html' import render_form %}
 {% from "_formhelpers.html" import render_field %}
 {% block body %}
 <div class="container">
-    <!-- Example row of columns -->     
-    <div class="row">
-      <div class="p-4"></div>
-      <div class="col-md-12">
-          <h3>Geodesignhub → ArcGIS Online Data Export
-          <small class="text-muted">Design migration</small></h3>
-          <p>Use this form to confirm that you want to migrate your design to ArcGIS online. The design will appear in the "Content" view of your organization's page in ArcGIS Online.</p>       
-      </div>
+  <!-- Example row of columns -->
+  <div class="row">
+    <div class="p-4"></div>
+    <div class="col-md-12">
+      <h3>Geodesignhub → ArcGIS Online Data Export
+        <small class="text-muted">Design migration</small>
+      </h3>
+      <p>Use this form to confirm that you want to migrate your design to ArcGIS online. The design will appear in the
+        "Content" view of your organization's page in ArcGIS Online.</p>
+    </div>
   </div>
-    <div class="row">
-      <div class="p-2"></div>
-      <h6>
-        Migration Status
-        <small class="text-body-secondary">Monitor submission to AGOL system</small>
-        <br><br>
-        {% if export_template_data.message %}
+  <div class="row">
+    <div class="p-2"></div>
+    <h6>
+      Migration Status
+      <small class="text-body-secondary">Monitor submission to AGOL system</small>
+      <br><br>
+      {% if export_template_data.message %}
+      <div class="mb-3">
+        <div class="alert alert-{{export_template_data.message_type}}" role="alert">
+          {{export_template_data.message}}
+        </div>
+      </div>
+      {% endif %}
+    </h6>
+  </div>
+
+  <div class="row">
+    <div class="p-2"></div>
+    <div class="col-md-12">
+      <h5>Ready to export <mark>{{export_template_data.geodesignhub_design_name}}</mark>...</h5>
+      <p>Please confirm that you want to export the design with
+        <b>{{export_template_data.geodesignhub_design_feature_count}}</b> diagrams to ArcGIS Online.
+      </p>
+
+      <!-- Start the form -->
+      <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <!-- Submit Button -->
         <div class="mb-3">
-          <div class="alert alert-{{export_template_data.message_type}}" role="alert">
-            {{export_template_data.message}}
-          </div>
+          <button type="submit" class="btn btn-primary">{{ form.submit.label.text }}</button>
         </div>
-        {% endif %}
-      </h6>
-    </div>
 
-    <div class="row">
-        <div class="p-2"></div>
-        <div class="col-md-12">
-            <h5>Ready to export <mark>{{export_template_data.geodesignhub_design_name}}</mark>...</h5>
-            <p>Please confirm that you want to export the design with <b>{{export_template_data.geodesignhub_design_feature_count}}</b> diagrams to ArcGIS Online. </p>
-            {{ render_form(form) }}
-         
+        <!-- Advanced Options Label -->
+        <h5 class="mt-4">Advanced options</h5>
+
+        <!-- Inline Checkboxes -->
+        <div class="form-check">
+          <input type="checkbox" id="webmap" name="webmap" class="form-check-input" checked>
+          <label class="form-check-label" for="webmap">Include Webmap</label>
         </div>
+        <div class="form-check">
+          <input type="checkbox" id="storymap" name="storymap" class="form-check-input" checked>
+          <label class="form-check-label" for="storymap">Include Storymap</label>
+        </div>
+      </form>
+
+
     </div>
-    
+  </div>
+
 </div>
-<!-- /container -->{% endblock %} 
+<!-- /container -->{% endblock %}
 
-{% block footer %} 
+{% block footer %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const webmapCheckbox = document.getElementById("webmap");
+    const storymapCheckbox = document.getElementById("storymap");
+
+    webmapCheckbox.addEventListener("change", function () {
+      if (!webmapCheckbox.checked && storymapCheckbox.checked) {
+        storymapCheckbox.checked = false;
+        storymapCheckbox.disabled = true;
+        alert("Storymap requires Webmap. Please select Webmap to produce Storymap.");
+      } else {
+        storymapCheckbox.disabled = false;
+      }
+    });
+
+    storymapCheckbox.addEventListener("change", function () {
+      if (storymapCheckbox.checked) {
+        webmapCheckbox.checked = true;
+      }
+    });
+  });
+</script>
 
 {% endblock %}

@@ -221,6 +221,8 @@ class AGOLSubmissionPayload:
     session_id: str
     gdh_systems_information: AllSystemDetails
     gdh_project_details: GeodesignhubProjectDetails
+    include_webmap: bool  # Add this field
+    include_storymap: bool  # Add this field
 
 
 @dataclass
