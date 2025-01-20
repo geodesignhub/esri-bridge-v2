@@ -13,13 +13,10 @@
             <small class="text-body-secondary">Monitor submission to AGOL system</small>
             <br><br>
             <div class="col-md-12">
-                <div class="alert {% if op %}alert-primary{% else %}alert-warning {% endif %}" role="alert">
+                <div class="alert {% if op %}alert-success{% else %}alert-warning {% endif %}" role="alert">
                     {{message}}
                 </div>
-                <div id="latest_update" class="alert" role="alert">
-                    <div class="spinner-border text-secondary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
+                <div id="latest_update" class="alert" role="alert">                    
                 </div>
             </div>
     </div>
