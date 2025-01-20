@@ -17,11 +17,12 @@
     <header>
         <div class="collapse bg-dark" id="navbarHeader">
           <div class="container">
+            
             <div class="row">
               
               <div class="col-sm-8 col-md-7 py-4">                
                 <p class="text-white">This is a plugin that uses <a href="https://www.geodesignhub.com/api/" target="_blank">Geodesignhub API</a> to export data to ArcGIS Online platform.</p>
-                <p class="text-white">You can contribute at <a target="_blank" href="https://geodesignhub.github.io/esri-bridge-v2/">Github</a>.</p>
+                <p class="text-white">You can suggest features and contribute via <a target="_blank" href="https://geodesignhub.github.io/esri-bridge-v2/">Github</a>.</p>
               </div>
               <div class="col-sm-4 offset-md-1 py-4">
                 <h4 class="text-white">Support</h4>
@@ -49,11 +50,19 @@
                 {% block body %}{% endblock %} 
                 <div class="container">
                 <footer class="pt-4 my-md-5 pt-md-5 border-top">
-                    <div class="row">
-                    <div class="col-12 col-md">
-                        <p>&copy 2024 Geodesignhub</p>        
-                       
+                  
+                  <div class="row">
+                    <div class="col-6 col-md">
+                      <h6>About</h6>
+                      <p>The Geodesignhub ESRI bridge can be added to your project via the Geodesignhub plugins panel. As a pre-requisite to using this, you must have a ArcGIS online account, you can get yours at <a href="https://www.arcgis.com/index.html">ArcGIS.com</a>. </p>                          
+                      </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-6 col-md">
+                          <a href="https://www.esri.com" class="current"> <img src="{{ url_for('static', filename='logos/esri-logo.png')}}" alt="Esri"></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://www.geodesignhub.com"><img src="{{ url_for('static', filename='logos/geodesignhub-logo.jpeg')}}" alt="geodesignhub"> </a> 
+                    
                     </div>
+                       
                     </div>
                 </footer>
                 </div>
