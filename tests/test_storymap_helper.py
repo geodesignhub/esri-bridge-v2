@@ -178,7 +178,7 @@ class TestStoryMapPublisher(unittest.TestCase):
 
         # Set up expected title and description based on template
         publisher._storymap_template = {
-            "name": "Geodesignhub ESRI Bridge Alpha",
+            "name": "Storymap for your Geodesignhub project",
             "description": "A detailed story map for Geodesignhub projects",
         }
         expected_title = publisher._storymap_template["name"]
