@@ -299,7 +299,7 @@ def redirect_after_export():
     session_id = request.args["session_id"]
     agol_project_id = request.args["agol_project_id"]
     message = (
-        "Your design is being exported to ArcGIS Online, you can close this window..."
+        "Your design is being exported to ArcGIS Online, you can close this window and check ArcGIS.com..."
         if status
         else "Error in exporting the design, please contact your administrator"
     )
