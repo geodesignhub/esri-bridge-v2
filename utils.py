@@ -286,7 +286,32 @@ class ArcGISHelper:
             # new_published_layer.renderer = renderer
             # set the renderer on the layer service
             # my_layer_manager.update_definition({"drawingInfo": {"renderer": renderer}})
-            my_map.content.add(new_published_layer, drawing_info={"renderer": renderer})
+
+            
+            # Get fields from the feature layer
+            fields = new_published_layer.properties.fields
+            field_infos = []
+
+            # Build fieldInfos dynamically for popup
+            for field in fields:
+                if field.type != "esriFieldTypeOID" and not field.name.endswith("_ID"):
+                    field_infos.append({
+                        "fieldName": field.name, 
+                        "label": field.alias,     
+                        "isEditable": False,      
+                        "visible": True        
+                    })
+
+            # Construct the popupInfo based on the fields 
+            popup_info_dict = {
+                "title": "{diagram_name}",  # Use a main field for title
+                "popupElements": [{
+                    "type": "fields", 
+                    "fieldInfos": field_infos  
+                }]
+            }
+
+            my_map.content.add(new_published_layer, drawing_info={"renderer": renderer}, popup_info = popup_info_dict)
 
             # Combine extents for the webmap
             layer_extent = new_published_layer.properties.extent
