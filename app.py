@@ -111,19 +111,18 @@ class ExportConfirmationForm(FlaskForm):
 def get_agol_processing_result():
     session_id = request.args.get("session_id", "0")
     agol_processing_key = session_id + "_status"
-
+    
     processing_result_exists = r.exists(agol_processing_key)
     if processing_result_exists:
         s = r.get(agol_processing_key)
         agol_status = json.loads(s)
     else:
         agol_export_status = AGOLExportStatus(
-            status=0,
-            message="Failed to get result for the specified session",
+            status=2,
+            message="Export to ArcGIS Online is still in progress, please check back afer a few minutes",
             success_url="",
         )
         agol_status = asdict(agol_export_status)
-
     return Response(json.dumps(agol_status), status=200, mimetype=MIMETYPE)
 
 
@@ -299,7 +298,7 @@ def redirect_after_export():
     session_id = request.args["session_id"]
     agol_project_id = request.args["agol_project_id"]
     message = (
-        "Your design is being exported to ArcGIS Online, you can close this window and check ArcGIS.com..."
+        "Your design is being exported to ArcGIS Online, you can close this window and check ArcGIS.com after a few minutes..."
         if status
         else "Error in exporting the design, please contact your administrator"
     )

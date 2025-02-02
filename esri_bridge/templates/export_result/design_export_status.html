@@ -11,51 +11,49 @@
         <h6>
             Migration Status
             <small class="text-body-secondary">Monitor submission to AGOL system</small>
-            <br><br>
+            <br>
+            
+            <br>
+            <div class="row">
+                <div class="col-md-12">
+                
+                    <button class="btn btn-outline-info d-none" id="get_migration_status" type="button"
+                        onclick="migration_helper.get_migration_status()" class="btn btn-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Check status of the export">Query status
+                    </button>
+                    <p>&nbsp;</p>
+                </div>
+            </div>
+            <br>
             <div class="col-md-12">
-                <div class="alert {% if op %}alert-success{% else %}alert-warning {% endif %}" role="alert">
+                <div id="intial_state" class="alert {% if op %}alert-info{% else %}alert-warning {% endif %}" role="alert">
                     {{message}}
                 </div>
                 <div id="latest_update" class="alert" role="alert">                    
                 </div>
-                <small class="text-muted">If you dont see your design in a couple of minutes in ArcGIS online, use this id <code>{{ session_id }}</code> and contact <a href="https://community.geodesignhub.com">Geodesignhub Community</a>.</small>
+                
             </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <small class="text-muted">If you dont see your design in a couple of minutes in ArcGIS online, use this id <code>{{ session_id }}</code> and contact <a href="https://community.geodesignhub.com">Geodesignhub Community</a>.</small>
+        </div>
     </div>
 </div><!-- /container -->
 {% endblock %}
 
 {% block footer %}
 <script type="text/javascript">
-    var source = new EventSource("{{ url_for('sse.stream') }}");
-    let job_submission_result = {{ op }};
-    const room = "{{session_id}}";
-    source.addEventListener('gdh_agol_export_success', function (event) {
-        var data = JSON.parse(event.data);
-        let job_key = data['job_id'];
-        let session_id = job_key.split(':')[0];
-        if (session_id === room) {
-            let session_processing_url = window.location.origin + '/get_agol_processing_result?session_id=' + session_id;
-            get_agol_processing_results(session_processing_url);
-        }
-    }, false);
-
-    source.addEventListener('gdh_agol_export_failure', function (event) {
-        var data = JSON.parse(event.data);
-        let job_key = data['job_id'];
-        let session_id = job_key.split(':')[0];
-        if (session_id === room) {
-            let session_processing_url = window.location.origin + '/get_agol_processing_result?session_id=' + session_id;
-            get_agol_processing_results(session_processing_url);
-        }
-    }, false);
 
 
-    function get_agol_processing_results(roads_shadow_stats_url) {
-        fetch(roads_shadow_stats_url)
+    function get_agol_processing_results(migration_status_url) {
+        fetch(migration_status_url)
             .then((response) => {
                 return response.json();
             })
             .then((agol_processing_response) => {
+                // hide the intiial state container
+                let intial_state_cont = document.getElementById('intial_state');
+                intial_state_cont.classList.add('d-none');
 
                 let status_ele = document.getElementById("latest_update");
                 
@@ -65,9 +63,17 @@
 
                 status_ele.appendChild(span);
                 if (agol_processing_response.status == 0) {
-                    status_ele.classList.add('alert-warning');
+                    
+                    let get_migration_status_cont = document.getElementById('get_migration_status');
+                    get_migration_status_cont.classList.add('d-none');
+                    status_ele.classList.add('alert-info');
                 }
                 else if (agol_processing_response.status == 1) {
+                            
+                    let get_migration_status_cont = document.getElementById('get_migration_status');
+                    get_migration_status_cont.classList.add('d-none');
+
+                    status_ele.classList.remove('alert-info');
                     status_ele.classList.add('alert-success');
                     let a = document.createElement('a');
                     let nbsp = document.createTextNode("\u00A0");
@@ -78,13 +84,38 @@
                     status_ele.appendChild(nbsp);
                     status_ele.appendChild(a);
                 }
+                else if (agol_processing_response.status == 2) {
+                 
+                    status_ele.classList.add('alert-info');
+                }
             }).catch((error) => {
-                // console.log(error)
+                console.log(error)
                 let status_ele = document.getElementById("latest_update");
                 status_ele.classList.add('alert-error');
                 status_ele.innerHTML = "Failed to get results from the bridge";
             });
     }
+
+    let MigrationHelperFactory = function () {
+
+        let session_id = "{{session_id}}";
+        this.get_migration_status =function() {
+            
+            let migration_status_url = window.location.origin + '/get_agol_processing_result?session_id=' + session_id;
+            get_agol_processing_results(migration_status_url)
+
+        }
+    }
+    let migration_helper = new MigrationHelperFactory();
+    setTimeout(
+            function() {
+                
+            // show get_design_shadows_control
+            let get_migration_status_cont = document.getElementById('get_migration_status');
+            get_migration_status_cont.classList.remove('d-none');
+            migration_helper.get_migration_status();            
+    }, 45000);
+    
 
 
 </script>
