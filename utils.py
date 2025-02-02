@@ -161,7 +161,7 @@ class ArcGISHelper:
         tags_df = pd.json_normalize(t["tags"])
 
         agol_item_details = AGOLItemDetails(
-            title="Geodesignhub Project tags",
+            title=f"Geodesignhub Project tags for project ID {project_id}",
             snippet=project_id + "-tags",
             description="All project tags as a CSV",
             type="CSV",
