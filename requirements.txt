@@ -21,3 +21,4 @@ arcgis-mapping==4.30.0
 pandas==2.1.4
 pillow==10.4.0
 PyYAML==6.0.2
+gunicorn==23.0.0
