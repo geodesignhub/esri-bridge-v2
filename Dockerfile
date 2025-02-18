@@ -20,4 +20,4 @@ COPY . .
 
 # Default command (can be overridden in docker-compose.yml)
 # CMD ["python", "app.py"]
-CMD ["gunicorn", "--bind", ":5001", "--workers", "3", "--reload"]
+CMD ["gunicorn", "app:app","--bind", "0.0.0.0:5001", "--workers", "3", "--reload"]
