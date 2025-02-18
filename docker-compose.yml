@@ -1,20 +1,27 @@
 version: '3.8'
 
 services:
-  web:
-    build: .
+  flask_docker:
+    build: 
+      context: .     
+    stop_signal: SIGINT
     ports:
-      - "5000:5000"  # Map container port 5000 to host port 5000
+      - "5001:5001"  # Map container port 8000 to host port 8000
     env_file:
       - .env         # Load environment variables
-    command: flask run --host=0.0.0.0 --port=5000  # Force Flask to bind to 0.0.0.0
-    environment:
-      - FLASK_APP=app.py
-      - FLASK_RUN_HOST=0.0.0.0
-      - FLASK_RUN_PORT=5000
-      - REDIS_URL=redis://redis:6379/0
+    # command: flask run --host=0.0.0.0 --port=5000  # Force Flask to bind to 0.0.0.0
+    command: /usr/local/bin/gunicorn -w 2 -b 0.0.0.0:5001 app:app
+    # command: >
+    #   gunicorn -c "python:config.gunicorn" --reload "flask_docker.app:create_app()"
+    # environment:
+    #   - FLASK_APP=app.py
+    #   - FLASK_RUN_HOST=0.0.0.0
+    #   - FLASK_RUN_PORT=5000
+    #   - REDIS_URL=redis://redis:6379/0
     depends_on:
       - redis        # Ensure Redis starts before the Flask app
+    network_mode: "host"
+
 
   worker:
     build: .
@@ -23,8 +30,9 @@ services:
     command: ["python", "worker.py"]  # Run the worker script
     depends_on:
       - redis        # Ensure Redis starts before the worker
-    environment:  
-      - REDIS_URL=redis://redis:6379/0
+    # environment:  
+    #   - REDIS_URL=redis://redis:6379/0
+
 
   redis:
     image: redis:alpine
