@@ -1,39 +1,38 @@
-name: Test
+name: Deploy to Railway
 
 on:
   push:
-    branches-ignore:
-      - main
+    branches:
+      - Railway_CI_CD
 
 jobs:
-  test:
-    if: false  # Tests disabled temporarily for codebase and configuration changes. Will re-enable soon.
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check out repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Node.js (for Railway CLI)
+        uses: actions/setup-node@v3
         with:
-          python-version: '3.10'
+          node-version: '16'
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            gcc \
-            libkrb5-dev \
-            build-essential
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pytest
+      - name: Deploy Web Service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service web --detach
 
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE" >> $GITHUB_ENV
+      - name: Deploy Worker Service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service worker --detach
 
-      - name: Run tests
-        run: pytest
+      # Optionally, deploy Redis if needed:
+      - name: Deploy Redis Service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service redis --detach

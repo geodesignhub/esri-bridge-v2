@@ -1,4 +1,4 @@
-# Use Python 3.10.16
+# Use Python 3.10.16 slim version
 FROM python:3.10.16-slim
 
 # Set the working directory
@@ -18,6 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Default command (can be overridden in docker-compose.yml)
-# CMD ["python", "app.py"]
-CMD ["gunicorn", "app:app","--bind", "0.0.0.0:5001", "--workers", "3", "--reload"]
+# Expose port 5000 (for Flask)
+EXPOSE 5000
+
+# Default command (this can be overridden in docker-compose.yml)
+CMD ["python", "app.py"]
