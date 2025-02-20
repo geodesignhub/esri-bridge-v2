@@ -316,15 +316,20 @@ class ArcGISHelper:
             # Combine extents for the webmap
             layer_extent = new_published_layer.properties.extent
             if layer_extent:
+                  # Check if any coordinate value is missing or empty
+                if any(layer_extent.get(key) in [None, ''] for key in ['xmin', 'ymin', 'xmax', 'ymax']):
+                    # Skip this layer and continue with the next one
+                    continue
+
                 if not combined_extent:
                     combined_extent = from_dict(data = dict(layer_extent), data_class = AGOLWebMapCombinedExtent)
                 else:
                     # Expand the combined extent to include this layer's extent
                     combined_extent = AGOLWebMapCombinedExtent(
-                        xmin= min(combined_extent["xmin"], layer_extent["xmin"]),
-                        ymin= min(combined_extent["ymin"], layer_extent["ymin"]),
-                        xmax= max(combined_extent["xmax"], layer_extent["xmax"]),
-                        ymax= max(combined_extent["ymax"], layer_extent["ymax"]),
+                        xmin= min(combined_extent.xmin, layer_extent["xmin"]),
+                        ymin= min(combined_extent.ymin, layer_extent["ymin"]),
+                        xmax= max(combined_extent.xmax, layer_extent["xmax"]),
+                        ymax= max(combined_extent.ymax, layer_extent["ymax"]),
                         spatialReference=  AGOLWebMapSpatialExtent(wkid=layer_extent["spatialReference"]['wkid'],latestWkid= layer_extent["spatialReference"]['latestWkid'])
                         )
                     
