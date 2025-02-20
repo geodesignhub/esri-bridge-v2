@@ -16,7 +16,7 @@ from json import encoder
 from shapely.geometry import mapping
 from dacite import from_dict
 from typing import List, Union
-from geojson import Feature, FeatureCollection, Polygon, LineString
+from geojson import Feature, FeatureCollection, Polygon, LineString, Point
 import GeodesignHub
 from dataclasses import asdict
 import config
@@ -84,9 +84,9 @@ class GeodesignhubDataDownloader:
 
         _raw_project_details = d.json()
         project_details = GeodesignhubProjectDetails(
-            id=_raw_project_details['id'],
-            project_title=_raw_project_details['projecttitle'],
-            project_description=_raw_project_details['projectdesc'],
+            id=_raw_project_details["id"],
+            project_title=_raw_project_details["projecttitle"],
+            project_description=_raw_project_details["projectdesc"],
         )
 
         return project_details
@@ -204,18 +204,19 @@ class GeodesignhubDataDownloader:
             _feature_properties = from_dict(
                 data_class=GeodesignhubFeatureProperties, data=_diagram_properties_raw
             )
-
+            _geometry = None
             # We assume that GDH will provide a polygon
             if f["geometry"]["type"] == "Polygon":
                 _geometry = Polygon(coordinates=f["geometry"]["coordinates"])
             elif f["geometry"]["type"] == "LineString":
                 _geometry = LineString(coordinates=f["geometry"]["coordinates"])
-            else:
-                return None
-            _feature = Feature(
-                geometry=_geometry, properties=asdict(_feature_properties)
-            )
-            _all_features.append(_feature)
+            elif f["geometry"]["type"] == "Point":
+                _geometry = Point(coordinates=f["geometry"]["coordinates"])
+            if _geometry:
+                _feature = Feature(
+                    geometry=_geometry, properties=asdict(_feature_properties)
+                )
+                _all_features.append(_feature)
 
         _diagram_feature_collection = FeatureCollection(features=_all_features)
 

@@ -167,18 +167,18 @@ def export_design():
 
     if export_confirmation_form.validate_on_submit():
         diagram_upload_form_data = export_confirmation_form.data
-
         agol_token = diagram_upload_form_data["agol_token"]
         agol_project_id = diagram_upload_form_data["agol_project_id"]
-        session_id = diagram_upload_form_data["session_id"]
-        session_key = session_id + "_design"
-        design_details_str = r.get(session_key)
+        existing_session_id = diagram_upload_form_data["session_id"]
+        existing_session_key = existing_session_id + "_design"
+        
+        design_details_str = r.get(existing_session_key)
 
         # Capture checkbox values
         include_webmap = export_confirmation_form.webmap.data
         include_storymap = export_confirmation_form.storymap.data
 
-        tags_key = session_id + "_tags"
+        tags_key = existing_session_id + "_tags"
 
         project_tags_str = r.get(tags_key)
         _all_project_tags = json.loads(project_tags_str.decode("utf-8"))
@@ -190,8 +190,9 @@ def export_design():
         _design_details_parsed = my_geodesignhub_downloader.parse_transform_geojson(
             design_feature_collection=_design_feature_collection["design_geojson"]
         )
-
+        
         _design_feature_collection["design_geojson"]["geojson"] = _design_details_parsed
+        
         design_details = from_dict(
             data_class=GeodesignhubDataStorage,
             data=_design_feature_collection,
@@ -206,7 +207,7 @@ def export_design():
             tags_data=project_tags_parsed,
             agol_token=agol_token,
             agol_project_id=agol_project_id,
-            session_id=session_id,
+            session_id=existing_session_id,
             gdh_systems_information=_gdh_systems,
             gdh_project_details=_gdh_project_details,
             include_webmap=include_webmap,  # Add this field to your payload class
@@ -218,7 +219,7 @@ def export_design():
             agol_submission_payload,
             on_success=notify_agol_submission_success,
             on_failure=notify_agol_submission_failure,
-            job_id=session_id,
+            job_id=existing_session_id,
             job_timeout=3600,
         )
 
@@ -226,7 +227,7 @@ def export_design():
             url_for(
                 "redirect_after_export",
                 agol_token=agol_token,
-                session_id=session_id,
+                session_id=existing_session_id,
                 agol_project_id=agol_project_id,
                 status=1,
                 code=307,
@@ -260,6 +261,7 @@ def export_design():
         project_id=project_id,
         design_name=_design_name,
     )
+    
     session_key = str(session_id) + "_design"
     # Cache it
     r.set(session_key, json.dumps(asdict(gdh_data_for_storage)))
