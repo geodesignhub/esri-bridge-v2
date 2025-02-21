@@ -1,25 +1,36 @@
-# Use Python 3.10.16 slim version
+# Use Python 3.10.16 slim image
 FROM python:3.10.16-slim
 
 # Set the working directory
 WORKDIR /app
 
-# Install system dependencies required for gssapi
+# Install system dependencies (including Redis)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libkrb5-dev \
     gcc \
+    redis-server \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-# Copy application code
+# Copy application code and the start script
 COPY . .
 
-# Expose port 5000 (for Flask)
+# Make start.sh executable
+RUN chmod +x start.sh
+
+# Expose the port (Railway expects PORT environment variable)
+EXPOSE 8080
 EXPOSE 5000
 
-# Default command (this can be overridden in docker-compose.yml)
-CMD ["python", "app.py"]
+# Set default environment variables (can be overridden by Railway)
+ENV PORT=8080
+ENV REDIS_URL=redis://localhost:6379/0
+ENV FLASK_RUN_PORT=${PORT}
+ENV FLASK_RUN_HOST=0.0.0.0
+
+# Run the start script
+CMD ["./start.sh"]
