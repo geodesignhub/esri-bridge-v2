@@ -111,7 +111,7 @@ class ExportConfirmationForm(FlaskForm):
 def get_agol_processing_result():
     session_id = request.args.get("session_id", "0")
     agol_processing_key = session_id + "_status"
-    
+
     processing_result_exists = r.exists(agol_processing_key)
     if processing_result_exists:
         s = r.get(agol_processing_key)
@@ -171,7 +171,7 @@ def export_design():
         agol_project_id = diagram_upload_form_data["agol_project_id"]
         existing_session_id = diagram_upload_form_data["session_id"]
         existing_session_key = existing_session_id + "_design"
-        
+
         design_details_str = r.get(existing_session_key)
 
         # Capture checkbox values
@@ -190,9 +190,9 @@ def export_design():
         _design_details_parsed = my_geodesignhub_downloader.parse_transform_geojson(
             design_feature_collection=_design_feature_collection["design_geojson"]
         )
-        
+
         _design_feature_collection["design_geojson"]["geojson"] = _design_details_parsed
-        
+
         design_details = from_dict(
             data_class=GeodesignhubDataStorage,
             data=_design_feature_collection,
@@ -261,7 +261,7 @@ def export_design():
         project_id=project_id,
         design_name=_design_name,
     )
-    
+
     session_key = str(session_id) + "_design"
     # Cache it
     r.set(session_key, json.dumps(asdict(gdh_data_for_storage)))
@@ -294,7 +294,6 @@ def export_design():
 
 @app.route("/export_result/", methods=["GET"])
 def redirect_after_export():
-
     status = int(request.args.get("status"))
     agol_token = request.args["agol_token"]
     session_id = request.args["session_id"]
