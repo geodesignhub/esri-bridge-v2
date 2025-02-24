@@ -12,7 +12,7 @@ placeholders:
 cover:
   title: "{project_title}"
   subtitle: "{project_description}"
-  cover_image_url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/7d973317b8434f298e4c543f37e0b0c8/data"
+  cover_image_url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/bc82b70bc7c34c48a03ecd5ebf084f96/data"
 
 # Content - Please edit this part #################################################################################
 # Update the content below with information specific to the current project. 
@@ -129,7 +129,7 @@ sections:
         style: paragraph
         text: *Geosurvey
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/05df78272aa947b7867e9320b1ef4fb9/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/d11d8a3386054fbfa541dc2ca589b782/data"
         caption: "Graph"
       - content_type: text
         style: paragraph
@@ -150,28 +150,28 @@ sections:
         style: paragraph
         text: *Negotiation_Analysis
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/76e237fc75cf40e29d1572a87cdaef47/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/0814d893a45f4c919345de1b1182ce24/data"
         caption: "Design Frequency Analysis"
       - content_type: separator
       - content_type: separator
       - content_type: separator
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/24aa98459d9846b896c259ae45a428b0/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/8b76a3540f41406494c4dd67ac2202ad/data"
         caption: "BIOD 1 & BIOD 2"
       - content_type: separator
       - content_type: separator
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/dda900bd211343ecb7819a328feb251c/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/99fd7a1cc0f3460089bbec166b920737/data"
         caption: "HSG 2 & TRANS 2"
       - content_type: separator
       - content_type: separator
       - content_type: separator
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/0651e4ca77b24b4da71aa7316902c0fc/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/49a1df3e9ff448c79d2d5168b45506e7/data"
         caption: "Moving from four designs to two"        
       - content_type: separator
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/eae44226112b4621bba2ad0ca7dcc46b/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/40e73d41e5eb4fdbbbba2d274af5e9b3/data"
         caption: "Agreements"       
       - content_type: separator
       - content_type: text
@@ -181,7 +181,7 @@ sections:
         style: paragraph
         text: *Final_Design
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/666adf5275304b99b1a95e8f890c59e3/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/1742942505c44beb94a568ae36ea641b/data"
         caption: "Design Map"
       - content_type: separator
       - content_type: text
@@ -189,7 +189,7 @@ sections:
         text: *Theme_Action
       - content_type: separator
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/e458d4c1c2ca4aea89902240c091f176/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/24c179e171eb47ada8f6c3f6611eac30/data"
         caption: "Bio Diversity"
       - content_type: table
         headers:
@@ -203,7 +203,7 @@ sections:
           - ["BIOD 5", "Shoreward strip"]
       - content_type: separator
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/3f0c951cbbbd4bb3adbd92031b9f9131/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/3703d2fc34064cb1affdcace7ce97b93/data"
         caption: "Housing"
       - content_type: table
         headers:
@@ -217,7 +217,7 @@ sections:
           - ["HSG 5", "HET Group H2 Housing beyond Cove and Kilcreggan Villages Bottom of Peaton Hill (on RHS if looking uphill). On bus routes and has potential for expansion for military families (and others) opposite to meadow protection"]
       - content_type: separator
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/4f696357491c4cf3b397ab98d8ebd9c9/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/ce3f3f481ed44b79a045135ff62eb4b7/data"
         caption: "Road Transport"
       - content_type: table
         headers:
@@ -270,7 +270,7 @@ sections:
         style: paragraph
         text: *Acknowledgements
       - content_type: image
-        url: "https://igcollab-com.maps.arcgis.com/sharing/rest/content/items/3bc45b161a46412d86cd7c4daabfe7f8/data"
+        url: "https://igcollab.maps.arcgis.com/sharing/rest/content/items/ed28cb76dffb4eadb1b8f348421e488c/data"
         caption: "Partner Logos"
       - content_type: image
         url: "https://www.rug.nl/library/open-access/blog/which-creative-commons-licence-should-i-choose-19-02-2021!attachment?c=images/blog-image-normal.jpg"
