@@ -11,7 +11,7 @@ from data_definitions import (
     AllSystemDetails,
     AGOLFeatureLayerPublishingResponse,
     AGOLWebMapCombinedExtent,
-    AGOLWebMapSpatialExtent
+    AGOLWebMapSpatialExtent,
 )
 from PIL import ImageColor
 import geojson
@@ -287,7 +287,6 @@ class ArcGISHelper:
             # set the renderer on the layer service
             # my_layer_manager.update_definition({"drawingInfo": {"renderer": renderer}})
 
-            
             # Get fields from the feature layer
             fields = new_published_layer.properties.fields
             field_infos = []
@@ -295,48 +294,60 @@ class ArcGISHelper:
             # Build fieldInfos dynamically for popup
             for field in fields:
                 if field.type != "esriFieldTypeOID" and not field.name.endswith("_ID"):
-                    field_infos.append({
-                        "fieldName": field.name, 
-                        "label": field.alias,     
-                        "isEditable": False,      
-                        "visible": True        
-                    })
+                    field_infos.append(
+                        {
+                            "fieldName": field.name,
+                            "label": field.alias,
+                            "isEditable": False,
+                            "visible": True,
+                        }
+                    )
 
-            # Construct the popupInfo based on the fields 
+            # Construct the popupInfo based on the fields
             popup_info_dict = {
                 "title": "{diagram_name}",  # Use a main field for title
-                "popupElements": [{
-                    "type": "fields", 
-                    "fieldInfos": field_infos  
-                }]
+                "popupElements": [{"type": "fields", "fieldInfos": field_infos}],
             }
 
-            my_map.content.add(new_published_layer, drawing_info={"renderer": renderer}, popup_info = popup_info_dict)
+            my_map.content.add(
+                new_published_layer,
+                drawing_info={"renderer": renderer},
+                popup_info=popup_info_dict,
+            )
 
             # Combine extents for the webmap
             layer_extent = new_published_layer.properties.extent
             if layer_extent:
-                  # Check if any coordinate value is missing or empty
-                if any(layer_extent.get(key) in [None, ''] for key in ['xmin', 'ymin', 'xmax', 'ymax']):
+                # Check if any coordinate value is missing or empty
+                if any(
+                    layer_extent.get(key) in [None, ""]
+                    for key in ["xmin", "ymin", "xmax", "ymax"]
+                ):
                     # Skip this layer and continue with the next one
                     continue
 
                 if not combined_extent:
-                    combined_extent = from_dict(data = dict(layer_extent), data_class = AGOLWebMapCombinedExtent)
+                    combined_extent = from_dict(
+                        data=dict(layer_extent), data_class=AGOLWebMapCombinedExtent
+                    )
                 else:
                     # Expand the combined extent to include this layer's extent
                     combined_extent = AGOLWebMapCombinedExtent(
-                        xmin= min(combined_extent.xmin, layer_extent["xmin"]),
-                        ymin= min(combined_extent.ymin, layer_extent["ymin"]),
-                        xmax= max(combined_extent.xmax, layer_extent["xmax"]),
-                        ymax= max(combined_extent.ymax, layer_extent["ymax"]),
-                        spatialReference=  AGOLWebMapSpatialExtent(wkid=layer_extent["spatialReference"]['wkid'],latestWkid= layer_extent["spatialReference"]['latestWkid'])
-                        )
-                    
+                        xmin=min(combined_extent.xmin, layer_extent["xmin"]),
+                        ymin=min(combined_extent.ymin, layer_extent["ymin"]),
+                        xmax=max(combined_extent.xmax, layer_extent["xmax"]),
+                        ymax=max(combined_extent.ymax, layer_extent["ymax"]),
+                        spatialReference=AGOLWebMapSpatialExtent(
+                            wkid=layer_extent["spatialReference"]["wkid"],
+                            latestWkid=layer_extent["spatialReference"]["latestWkid"],
+                        ),
+                    )
 
         # Set the webmap's extent
         if combined_extent:
-            my_map.extent = asdict(combined_extent) # AGOL expects a dictionary for extents
+            my_map.extent = asdict(
+                combined_extent
+            )  # AGOL expects a dictionary for extents
 
         web_map_title = "Webmap for {design_name}".format(
             design_name=_gdh_design_details.design_name
@@ -370,7 +381,9 @@ class ArcGISHelper:
 
         if updated_features:
             result = feature_layer.edit_features(updates=updated_features)
-            logger.info(f"Removed CODE: prefix from {len(updated_features)} features. Edit result: {result}")
+            logger.info(
+                f"Removed CODE: prefix from {len(updated_features)} features. Edit result: {result}"
+            )
         else:
             logger.info("No 'CODE:' prefix found to remove.")
 
@@ -379,7 +392,6 @@ class ArcGISHelper:
         design_data: ArcGISDesignPayload,
         gdh_systems_information: AllSystemDetails,
     ) -> AGOLFeatureLayerPublishingResponse:
-
         _gdh_design_details = design_data.gdh_design_details
         _gdh_project_systems = gdh_systems_information
         design_id = _gdh_design_details.design_id
@@ -392,7 +404,12 @@ class ArcGISHelper:
 
         if design_exists_in_profile:
             logger.info("Design already exists in profile, it cannot be re-uploaded")
-            return AGOLFeatureLayerPublishingResponse(status=0, item=None, url="")
+            return AGOLFeatureLayerPublishingResponse(
+                status=0,
+                item=None,
+                url="",
+                message="Design already exists in profile, it cannot be re-uploaded",
+            )
 
         # Extract the FeatureCollection
         _gdh_design_feature_collection: FeatureCollection = (
@@ -400,13 +417,17 @@ class ArcGISHelper:
         )
 
         for feature in _gdh_design_feature_collection["features"]:
-                props = feature["properties"]
-                if "tag_codes" in props:
-                    original_val = str(props["tag_codes"])
-                    props["tag_codes"] = f"CODE:{original_val}"
+            props = feature["properties"]
+            if "tag_codes" in props:
+                original_val = str(props["tag_codes"])
+                props["tag_codes"] = f"CODE:{original_val}"
 
         # Fallback to a safe design name if it's empty or null
-        safe_design_name = _gdh_design_details.design_name.strip() if _gdh_design_details.design_name else "UntitledDesign"
+        safe_design_name = (
+            _gdh_design_details.design_name.strip()
+            if _gdh_design_details.design_name
+            else "UntitledDesign"
+        )
         if not safe_design_name:
             safe_design_name = "UntitledDesign"
 
@@ -425,12 +446,11 @@ class ArcGISHelper:
 
         # Add the item
         geojson_add_job = self.folder.add(
-            item_properties=asdict(agol_item_details),
-            file=temp_geojson_path
+            item_properties=asdict(agol_item_details), file=temp_geojson_path
         )
 
         # Note: This code is not functioning as expected. The 'tag_codes' field is not being correctly set to 'esriFieldTypeString'.
-        # For now, we set the field to a string by adding a prefix value and then removing the prefix, avoiding ESRI's verbose JSON payloads 
+        # For now, we set the field to a string by adding a prefix value and then removing the prefix, avoiding ESRI's verbose JSON payloads
 
         # publish_parameters = {
         #     "name": f"{_gdh_design_details.design_name}_{design_id}",
@@ -448,22 +468,32 @@ class ArcGISHelper:
 
         if geojson_add_job.done():
             geojson_item = geojson_add_job.result()
+            feature_layer_published = False
+            try:
+                feature_layer_item = geojson_item.publish()
+            except Exception as e:
+                logger.info(f"Error publishing the GeoJSON item to AGOL: {e}")
 
-            feature_layer_item = geojson_item.publish()
+            else:
+                feature_layer_published = True
+                feature_layer_item_url = feature_layer_item.url
+            finally:
+                # Clean up temp file
+                os.unlink(temp_geojson_path)
+                output.delete = True
 
-            # feature_layer_item = geojson_item.publish(
-            #     publish_parameters=publish_parameters
-            # )
+            if feature_layer_published:
+                logger.info("Layer is published as Feature Collection")
+                logger.info("Getting the published feature layer...")
+                new_published_layers = feature_layer_item.layers
 
-            feature_layer_item_url = feature_layer_item.url
-
-            # Clean up temp file
-            os.unlink(temp_geojson_path)
-            output.delete = True
-
-            logger.info("Layer is published as Feature Collection")
-            logger.info("Getting the published feature layer...")
-            new_published_layers = feature_layer_item.layers
+            else:
+                return AGOLFeatureLayerPublishingResponse(
+                    status=0,
+                    item=None,
+                    url="",
+                    message="Error publishing the GeoJSON item to ArcGIS online",
+                )
 
             for new_published_layer in new_published_layers:
                 logger.info(
@@ -488,10 +518,16 @@ class ArcGISHelper:
                 )
                 self.remove_code_prefix_from_tag_codes(new_published_layer)
 
-
-   
             return AGOLFeatureLayerPublishingResponse(
-                status=1, item=feature_layer_item, url=feature_layer_item_url
+                status=1,
+                item=feature_layer_item,
+                url=feature_layer_item_url,
+                message="Layer is published as Feature Collection",
             )
 
-        return AGOLFeatureLayerPublishingResponse(status=0, item=None, url="")
+        return AGOLFeatureLayerPublishingResponse(
+            status=0,
+            item=None,
+            url="",
+            message="Error publishing the Design JSON to ArcGIS online",
+        )

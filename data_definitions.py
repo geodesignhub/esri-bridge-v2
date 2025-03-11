@@ -230,6 +230,7 @@ class AGOLFeatureLayerPublishingResponse:
     status: int
     item: Union[None, Item]
     url: str
+    message: Optional[str] = ""
 
 
 @dataclass
