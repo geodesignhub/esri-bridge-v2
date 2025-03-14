@@ -60,6 +60,14 @@ class VolumeInformation:
     min_height: float
     max_height: float
 
+@dataclass
+class ImportConfirmationPayload:
+    agol_token: str
+    agol_project_id: str
+    message: str
+    message_type: MessageType    
+    session_id: str
+
 
 @dataclass
 class ExportConfirmationPayload:

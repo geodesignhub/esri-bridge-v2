@@ -13,6 +13,7 @@ from data_definitions import (
     AGOLSubmissionPayload,
     GeodesignhubProjectTags,
     AllSystemDetails,
+    ImportConfirmationPayload,
 )
 from notifications_helper import (
     notify_agol_submission_success,
@@ -36,7 +37,16 @@ from rq import Queue
 from worker import conn
 from flask_wtf import FlaskForm, CSRFProtect
 from flask_bootstrap import Bootstrap5
-from wtforms import BooleanField, SubmitField, HiddenField
+from wtforms import (
+    BooleanField,
+    SubmitField,
+    HiddenField,
+    SelectField,
+    StringField,
+    FieldList,
+    FormField,
+)
+from wtforms.validators import InputRequired
 import logging
 from logging.config import dictConfig
 import re
@@ -99,12 +109,86 @@ bootstrap = Bootstrap5(app)
 
 
 class ExportConfirmationForm(FlaskForm):
+    """
+    ExportConfirmationForm is a FlaskForm used to handle the export confirmation process.
+    Attributes:
+        agol_token (HiddenField): A hidden field to store the ArcGIS Online token.
+        agol_project_id (HiddenField): A hidden field to store the ArcGIS Online project ID.
+        session_id (HiddenField): A hidden field to store the session ID.
+        webmap (BooleanField): A boolean field to indicate whether to include the webmap in the export.
+        storymap (BooleanField): A boolean field to indicate whether to include the storymap in the export.
+        submit (SubmitField): A submit button to trigger the export process.
+    """
+
     agol_token = HiddenField()
     agol_project_id = HiddenField()
     session_id = HiddenField()
     webmap = BooleanField("Include Webmap")
     storymap = BooleanField("Include Storymap")
     submit = SubmitField(label="Export Design to ArcGIS Online →")
+
+
+class AGOLObjectEntryForm(FlaskForm):
+    agol_id = HiddenField()
+    name = StringField("Name", validators=[InputRequired()])
+    project_or_policy = SelectField(
+        "Project or Policy",
+        coerce=str,
+        validators=[InputRequired()],
+        choices=[("project", "Project"), ("policy", "Policy")],
+    )
+    destination_gdh_system = SelectField(
+        "Destination System",
+        coerce=int,
+        validators=[InputRequired()],
+        choices=[(0, "Select System")],
+    )
+
+
+class ImportConfirmationForm(FlaskForm):
+    """
+    A form for confirming the import of selected data to Geodesignhub.
+    Attributes:
+        agol_token (HiddenField): A hidden field to store the AGOL token.
+        session_id (HiddenField): A hidden field to store the session ID.
+        submit (SubmitField): A submit button to confirm the import action.
+    """
+
+    agol_token = HiddenField()
+    session_id = HiddenField()
+    agol_objects = FieldList(FormField(AGOLObjectEntryForm), max_entries=10)
+    submit = SubmitField(label="Import selected data to Geodesignhub →")
+
+
+def create_import_confirmation_form(
+    project_id: str,
+    agol_token: str,
+    agol_project_id: str,
+    session_id: str,
+    _gdh_systems: AllSystemDetails,
+)->ImportConfirmationForm:
+    agol_objects_form = AGOLObjectEntryForm()
+    agol_objects_form.agol_id = ("0000-0000-0000-0000",)
+
+    agol_objects_form.destination_gdh_system.choices = [
+        (
+            system.id,
+            system.name,
+        )
+        for system in _gdh_systems.systems
+    ]
+    agol_objects_form.name = "Test Label"
+
+    import_confirmation_form = ImportConfirmationForm()
+
+    import_confirmation_form.project_id = project_id
+    import_confirmation_form.agol_token = agol_token
+    import_confirmation_form.agol_project_id = agol_project_id
+    import_confirmation_form.session_id = session_id
+
+    import_confirmation_form.agol_objects = [agol_objects_form]
+
+    return import_confirmation_form
 
 
 @app.route("/get_agol_processing_result", methods=["GET"])
@@ -128,6 +212,22 @@ def get_agol_processing_result():
 
 @app.route("/export/", methods=["GET", "POST"])
 def export_design():
+    """
+    This function handles the export of a design from Geodesignhub to ArcGIS Online (AGOL).
+    It performs the following steps:
+    1. Parses request arguments to extract project and authentication details.
+    2. Initializes a session and creates an export confirmation form.
+    3. Downloads project details and systems from Geodesignhub.
+    4. Validates the export confirmation form and processes the form data.
+    5. Retrieves and parses design details and project tags from the session.
+    6. Prepares the payload for AGOL submission, including design data, tags, and additional options.
+    7. Enqueues a job to publish the design to AGOL and redirects the user upon success.
+    8. If the form is not submitted, it downloads design data, details, and tags from Geodesignhub.
+    9. Caches the design data and tags in the session.
+    10. Renders the export confirmation template with the necessary data.
+    Returns:
+        Response: A redirect response to the next step in the export process or a rendered template for export confirmation.
+    """
     """This is the root of the web service, upon successful authentication a text will be displayed in the browser"""
     try:
         project_id = request.args.get("projectid")
@@ -163,7 +263,6 @@ def export_design():
     )
     _gdh_project_details = my_geodesignhub_downloader.get_project_details()
     _gdh_systems_raw = my_geodesignhub_downloader.download_project_systems()
-    logger.info("INFO: Inside the home function")
 
     if export_confirmation_form.validate_on_submit():
         diagram_upload_form_data = export_confirmation_form.data
@@ -294,6 +393,17 @@ def export_design():
 
 @app.route("/export_result/", methods=["GET"])
 def redirect_after_export():
+    """
+    Handles the redirection after an export operation to ArcGIS Online.
+    This function retrieves the status, agol_token, session_id, and agol_project_id
+    from the request arguments, constructs a message based on the status, and renders
+    the 'design_export_status.html' template with the provided information.
+    Args:
+        None
+    Returns:
+        A rendered HTML template with the export status message and relevant information.
+    """
+
     status = int(request.args.get("status"))
     agol_token = request.args["agol_token"]
     session_id = request.args["session_id"]
@@ -305,6 +415,122 @@ def redirect_after_export():
     )
     return render_template(
         "export_result/design_export_status.html",
+        op=status,
+        message=message,
+        agol_token=agol_token,
+        session_id=session_id,
+        agol_project_id=agol_project_id,
+    )
+
+
+@app.route("/import/", methods=["GET", "POST"])
+def import_agol_data():
+    """
+    Handles the import of data from ArcGIS Online (AGOL) based on the provided request parameters.
+    This function extracts necessary parameters from the request, validates the import confirmation form,
+    and either redirects to a confirmation page or renders the import template with the appropriate data.
+    Request Parameters:
+    - projectid: The ID of the project.
+    - apitoken: The API token for authentication.
+    - cteamid: The ID of the design team.
+    - synthesisid: The ID of the design.
+    - arcgisToken: The token for accessing ArcGIS Online.
+    - gplProjectId: The ID of the AGOL project.
+    Returns:
+        Response: A redirect response to the confirmation page if the form is valid, or a rendered template
+                  with the import confirmation form and data.
+    """
+
+    try:
+        project_id = request.args.get("projectid")
+        apitoken = request.args.get("apitoken")
+        design_team_id = request.args.get("cteamid")
+        design_id = request.args.get("synthesisid")
+        agol_token = request.args.get("arcgisToken")
+        agol_project_id = request.args.get("gplProjectId")
+
+    except KeyError:
+        error_msg = ErrorResponse(
+            status=0,
+            message="Could not parse Project ID, Diagram ID or API Token ID. One or more of these were not found in your JSON request.",
+            code=400,
+        )
+
+        return Response(asdict(error_msg), status=400, mimetype=MIMETYPE)
+
+    session_id = uuid.uuid4()
+    my_geodesignhub_downloader = GeodesignhubDataDownloader(
+        session_id=session_id,
+        project_id=project_id,
+        synthesis_id=design_id,
+        cteam_id=design_team_id,
+        apitoken=apitoken,
+    )
+
+    _gdh_systems_raw = my_geodesignhub_downloader.download_project_systems()
+    _gdh_systems = AllSystemDetails(systems=_gdh_systems_raw)
+    
+    import_confirmation_form = create_import_confirmation_form(
+        project_id=project_id, agol_token= agol_token,  agol_project_id=agol_project_id, session_id=session_id, _gdh_systems=_gdh_systems)
+    
+    if import_confirmation_form.validate_on_submit():
+        diagram_upload_form_data = import_confirmation_form.data
+        agol_token = diagram_upload_form_data["agol_token"]
+        agol_project_id = diagram_upload_form_data["agol_project_id"]
+        existing_session_id = diagram_upload_form_data["session_id"]
+
+        return redirect(
+            url_for(
+                "redirect_after_import",
+                agol_token=agol_token,
+                session_id=existing_session_id,
+                agol_project_id=agol_project_id,
+                status=1,
+                code=307,
+            )
+        )
+
+    confirmation_message = "Select data you want to import.."
+    message_type = MessageType.primary
+    import_confirmation_payload = ImportConfirmationPayload(
+        agol_token=agol_token,
+        agol_project_id=agol_project_id,
+        message_type=message_type,
+        message=confirmation_message,
+        session_id=session_id,
+    )
+
+    return render_template(
+        "import.html",
+        import_template_data=asdict(
+            import_confirmation_payload, dict_factory=custom_asdict_factory
+        ),
+        form=import_confirmation_form,
+    )
+
+
+@app.route("/import_result/", methods=["GET"])
+def redirect_after_import():
+    """
+    Handles the redirection after an import operation from AGOL (ArcGIS Online) to Geodesignhub.
+    Retrieves the status, AGOL token, session ID, and AGOL project ID from the request arguments.
+    Depending on the status, it sets an appropriate message indicating the success or failure of the import operation.
+    Renders the 'import_result/design_import_status.html' template with the operation status, message, AGOL token, session ID, and AGOL project ID.
+    Returns:
+        Response: Rendered HTML template with the import status and related information.
+    """
+
+    status = int(request.args.get("status"))
+    agol_token = request.args["agol_token"]
+    session_id = request.args["session_id"]
+    agol_project_id = request.args["agol_project_id"]
+    message = (
+        "Your AGOL data is being migrated to Geodesignhub, check your Geodesignhub project in a few minutes..."
+        if status
+        else "Error in importing your AGOL data, please contact your administrator"
+    )
+    return render_template(
+        "import_result/design_import_status.html",
         op=status,
         message=message,
         agol_token=agol_token,

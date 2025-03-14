@@ -1,0 +1,89 @@
+{% extends "layout.html" %} {% from 'bootstrap5/form.html' import render_form %}
+{% from "_formhelpers.html" import render_field %} {% from
+'bootstrap5/form.html' import render_form_row %} {% block body %}
+<div class="container">
+  <!-- Example row of columns -->
+  <div class="row">
+    <div class="p-4"></div>
+    <div class="col-md-12">
+      <h3>
+        ArcGIS Online → Geodesignhub Data Transfer
+        <small class="text-muted">AGOL Data migration</small>
+      </h3>
+      <p>
+        Use this form to confirm that you want to migrate your ArcGIS online
+        content to your Geodesignhub project. The selected data will appear as
+        diagrams in your Geodesignhub project.
+      </p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="p-2"></div>
+    <h6>
+      Migration Status
+      <small class="text-body-secondary"
+        >Monitor submission to Geodesignhub</small
+      >
+      <br /><br />
+      {% if import_template_data.message %}
+      <div class="mb-3">
+        <div
+          class="alert alert-{{import_template_data.message_type}}"
+          role="alert"
+        >
+          {{import_template_data.message}}
+        </div>
+      </div>
+      {% endif %}
+    </h6>
+  </div>
+
+  <div class="row">
+    <div class="p-2"></div>
+    <div class="col-md-12">
+      <p>
+        Choose the features that you want to import to Geodesignhub, you can
+        also choose if it is a project or policy once it is imported. Please see
+        the
+        <a
+          href="https://community.geodesignhub.com/t/what-is-the-difference-between-project-and-policy-diagrams/48"
+          target="_blank"
+          >community support</a
+        >
+        article to understand the difference between project and policy.
+      </p>
+      <!-- Start the form -->
+      <form method="POST">
+        <!-- Submit Button -->
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Feature Name</th>
+              <th scope="col">Project or Policy</th>
+              <th scope="col">Destination GDH System</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {{ form.hidden_tag() }} {% for agol_entry_form in
+              form.agol_objects %}
+              <th scope="row">{{ agol_entry_form.name }}</th>
+              <td>{{ agol_entry_form.project_or_policy }}</td>
+              <td>
+                {{ agol_entry_form.destination_gdh_system }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="mb-3 py-4">
+          <button type="submit" class="btn btn-primary">
+            {{ form.submit.label.text }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- /container -->{% endblock %} {% block footer %} {% endblock %}

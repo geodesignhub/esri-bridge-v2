@@ -20,7 +20,7 @@ from geojson import Feature, FeatureCollection, Polygon, LineString, Point
 import GeodesignHub
 from dataclasses import asdict
 import config
-
+from arcgis.gis import GIS, Item
 
 from uuid import uuid4
 

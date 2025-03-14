@@ -1,0 +1,122 @@
+{% extends "layout.html" %}
+{% block headercss %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+
+{% endblock %}
+{% block body %}
+<div class="container">
+    <!-- Example row of columns -->
+    <br>
+    <div class="row">
+        <h6>
+            Migration Status
+            <small class="text-body-secondary">Monitor submission to AGOL system</small>
+            <br>
+            
+            <br>
+            <div class="row">
+                <div class="col-md-12">
+                
+                    <button class="btn btn-outline-info d-none" id="get_migration_status" type="button"
+                        onclick="migration_helper.get_migration_status()" class="btn btn-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Check status of the export">Query status
+                    </button>
+                    <p>&nbsp;</p>
+                </div>
+            </div>
+            <br>
+            <div class="col-md-12">
+                <div id="intial_state" class="alert {% if op %}alert-info{% else %}alert-warning {% endif %}" role="alert">
+                    {{message}}
+                </div>
+                <div id="latest_update" class="alert" role="alert">                    
+                </div>
+                
+            </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <small class="text-muted">If you dont see your design in a couple of minutes in ArcGIS online, use this id <code>{{ session_id }}</code> and contact <a href="https://community.geodesignhub.com">Geodesignhub Community</a>.</small>
+        </div>
+    </div>
+</div><!-- /container -->
+{% endblock %}
+
+{% block footer %}
+<script type="text/javascript">
+
+
+    function get_agol_processing_results(migration_status_url) {
+        fetch(migration_status_url)
+            .then((response) => {
+                return response.json();
+            })
+            .then((agol_processing_response) => {
+                // hide the intiial state container
+                let intial_state_cont = document.getElementById('intial_state');
+                intial_state_cont.classList.add('d-none');
+
+                let status_ele = document.getElementById("latest_update");
+                
+                status_ele.innerHTML = "";
+                let span = document.createElement('span');
+                span.innerHTML = agol_processing_response.message;
+
+                status_ele.appendChild(span);
+                if (agol_processing_response.status == 0) {
+                    
+                    let get_migration_status_cont = document.getElementById('get_migration_status');
+                    get_migration_status_cont.classList.add('d-none');
+                    status_ele.classList.add('alert-info');
+                }
+                else if (agol_processing_response.status == 1) {
+                            
+                    let get_migration_status_cont = document.getElementById('get_migration_status');
+                    get_migration_status_cont.classList.add('d-none');
+
+                    status_ele.classList.remove('alert-info');
+                    status_ele.classList.add('alert-success');
+                    let a = document.createElement('a');
+                    let nbsp = document.createTextNode("\u00A0");
+                    a.href = agol_processing_response.success_url;
+                    a.innerHTML = "see the layer on ArcGIS ↗"
+                    a.target = "_blank"
+                    status_ele.appendChild(span);
+                    status_ele.appendChild(nbsp);
+                    status_ele.appendChild(a);
+                }
+                else if (agol_processing_response.status == 2) {
+                 
+                    status_ele.classList.add('alert-info');
+                }
+            }).catch((error) => {
+                console.log(error)
+                let status_ele = document.getElementById("latest_update");
+                status_ele.classList.add('alert-error');
+                status_ele.innerHTML = "Failed to get results from the bridge";
+            });
+    }
+
+    let MigrationHelperFactory = function () {
+
+        let session_id = "{{session_id}}";
+        this.get_migration_status =function() {
+            
+            let migration_status_url = window.location.origin + '/get_agol_processing_result?session_id=' + session_id;
+            get_agol_processing_results(migration_status_url)
+
+        }
+    }
+    let migration_helper = new MigrationHelperFactory();
+    setTimeout(
+            function() {
+                
+            // show get_design_shadows_control
+            let get_migration_status_cont = document.getElementById('get_migration_status');
+            get_migration_status_cont.classList.remove('d-none');
+            migration_helper.get_migration_status();            
+    }, 45000);
+    
+
+
+</script>
+{% endblock %}

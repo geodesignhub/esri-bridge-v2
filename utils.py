@@ -111,6 +111,18 @@ class ArcGISHelper:
     def get_gis(self) -> GIS:
         return self.gis
 
+    def get_ok_for_migration_items(
+        self,
+    ):
+        """Get all items that are ok for migration from AGOL"""
+
+        ok_for_migrations = self.gis.content.search(
+            query="tags:migrate_to_geodesignhub", item_type="Feature Service"
+        )
+
+        if search_results:
+            object_already_exists = True
+
     def create_gis_object(self) -> GIS:
         gis = GIS("https://www.arcgis.com/", token=self.agol_token)
         return gis
