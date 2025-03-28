@@ -40,6 +40,7 @@ def export_to_json(data):
     return json.loads(json.dumps(data, sort_keys=True, cls=ShapelyEncoder))
 
 
+
 class GeodesignhubDataDownloader:
     """
     A class to download and process data from Geodesignhub

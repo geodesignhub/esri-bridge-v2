@@ -469,6 +469,27 @@ def import_agol_data():
 
     _gdh_systems_raw = my_geodesignhub_downloader.download_project_systems()
     _gdh_systems = AllSystemDetails(systems=_gdh_systems_raw)
+
+    _items_for_import = my_geodesignhub_downloader.download_items_for_import(
+        agol_token=agol_token, agol_project_id=agol_project_id
+    )
+    if not _items_for_import:
+        error_msg = ErrorResponse(
+            status=0,
+            message="No items found for import. Please check your AGOL project.",
+            code=400,
+        )
+        return Response(asdict(error_msg), status=400, mimetype=MIMETYPE)
+    agol_objects = []
+    for item in _items_for_import:
+        agol_objects.append(
+            AGOLObjectEntryForm(
+                agol_id=item["id"],
+                name=item["name"],
+                project_or_policy=item["type"],
+                destination_gdh_system=0,
+            )
+        )
     
     import_confirmation_form = create_import_confirmation_form(
         project_id=project_id, agol_token= agol_token,  agol_project_id=agol_project_id, session_id=session_id, _gdh_systems=_gdh_systems)

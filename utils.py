@@ -116,10 +116,8 @@ class ArcGISHelper:
     ):
         """Get all items that are ok for migration from AGOL"""
 
-        ok_for_migrations = self.gis.content.search(
-            query="tags:migrate_to_geodesignhub", item_type="Feature Service"
-        )
-
+        items = gis.content.search(query=f'tags:"migrate_to_geodesignhub" owner:{owner}', item_type="GeoJson")
+        
         if search_results:
             object_already_exists = True
 
