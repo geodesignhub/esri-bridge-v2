@@ -41,9 +41,9 @@ r = get_redis()
 def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
     """This method one by one submits the designs and the tags data to AGOL"""
     agol_token = agol_submission_payload.agol_token
-    my_arc_gis_helper = ArcGISHelper(
-        agol_token=agol_token,
-        project_title=agol_submission_payload.gdh_project_details.project_title,
+    my_arc_gis_helper = ArcGISHelper(agol_token=agol_token)
+    my_arc_gis_helper.create_folder(
+        project_title=agol_submission_payload.gdh_project_details.project_title
     )
     agol_export_status = AGOLExportStatus(status=0, message="", success_url="")
 
@@ -103,23 +103,81 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
 
 
 class ArcGISHelper:
-    def __init__(self, agol_token: str, project_title: str):
+    """
+    ArcGISHelper is a utility class designed to interact with ArcGIS Online (AGOL) services.
+    It provides methods for managing GIS objects, creating folders, checking for existing items,
+    exporting data, and publishing feature layers and web maps.
+    Attributes:
+        agol_token (str): The authentication token for accessing AGOL.
+        gis (GIS): The GIS object created using the provided AGOL token.
+    Methods:
+        __init__(agol_token: str):
+            Initializes the ArcGISHelper instance with the provided AGOL token.
+        get_gis() -> GIS:
+            Returns the GIS object associated with the helper.
+        get_ok_for_migration_items():
+            Retrieves all items tagged for migration from AGOL.
+        create_gis_object() -> GIS:
+            Creates and returns a GIS object using the AGOL token.
+        create_folder(project_title: str):
+            Creates a folder in AGOL for the user based on the project title.
+        check_if_tags_exist(project_id: str, gis: GIS) -> bool:
+            Checks if tags for a specific project already exist in AGOL.
+        check_if_design_exists(project_id: str, design_id: str, gis: GIS) -> bool:
+            Checks if a design for a specific project already exists in AGOL.
+        export_project_tags_to_agol(tags_data: GeodesignhubProjectTags, project_id: str) -> Union[int, Item]:
+            Exports project tags as a CSV file to AGOL.
+        create_uv_infos(gdh_project_systems: AllSystemDetails, geometry_type: str):
+            Creates unique value information for AGOL based on project systems.
+        create_symbol(geometry_type, symbol_color, opacity=0.65):
+            Creates a symbol for AGOL based on geometry type and color.
+        create_uv_renderer(geometry_type: str, unique_field_name: str, gdh_project_systems: AllSystemDetails):
+            Creates a renderer for AGOL based on unique field and system details.
+        publish_feature_layer_as_webmap(feature_layer_item: Item, design_data: ArcGISDesignPayload, gdh_systems_information: AllSystemDetails) -> Item:
+            Publishes a feature layer as a web map in AGOL.
+        remove_code_prefix_from_tag_codes(feature_layer):
+            Removes the 'CODE:' prefix from the 'tag_codes' field in all features of a given feature layer.
+        export_design_json_to_agol(design_data: ArcGISDesignPayload, gdh_systems_information: AllSystemDetails) -> AGOLFeatureLayerPublishingResponse:
+            Exports design data as a GeoJSON file to AGOL and publishes it as a feature layer.
+    """
+
+    def __init__(self, agol_token: str):
         self.agol_token = agol_token
         self.gis = self.create_gis_object()
-        self.folder = self.create_folder(project_title)
 
     def get_gis(self) -> GIS:
         return self.gis
 
-    def get_ok_for_migration_items(
-        self,
-    ):
+    def get_ok_for_migration_items(self, data_format: str):
         """Get all items that are ok for migration from AGOL"""
+        owner = self.gis.users.me.username
+        # Define a lookup for data_format
+        data_format_lookup = {"geojson": "GeoJSON"}
 
-        items = gis.content.search(query=f'tags:"migrate_to_geodesignhub" owner:{owner}', item_type="GeoJson")
-        
+        # Validate and get the format from the lookup
+        if data_format not in data_format_lookup:
+            raise ValueError(f"Unsupported data format: {data_format}")
+        format_type = data_format_lookup[data_format]
+        logger.info(f"Data format selected: {format_type}")
+
+        search_results = self.gis.content.search(
+            query=f'tags:"migrate_to_geodesignhub" owner:{owner}',
+            item_type=f"{format_type}",
+        )
+
         if search_results:
-            object_already_exists = True
+            logger.info(f"Found {len(search_results)} items for migration")
+
+        return search_results
+
+    def download_item_to_tmp_file(self, item: Item) -> tempfile.NamedTemporaryFile:
+        """Download the item to a temporary file"""
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        item.download(save_path=temp_file.name)
+
+        item.close()
+        logger.info(f"Item downloaded to {temp_file.name}")
+        return temp_file
 
     def create_gis_object(self) -> GIS:
         gis = GIS("https://www.arcgis.com/", token=self.agol_token)

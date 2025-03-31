@@ -14,11 +14,16 @@ from data_definitions import (
     GeodesignhubProjectTags,
     AllSystemDetails,
     ImportConfirmationPayload,
+    ImporttoGDHItem,
+    ImporttoGDHPayload
 )
 from notifications_helper import (
     notify_agol_submission_success,
     notify_agol_submission_failure,
+    notify_gdh_submission_failure,
+    notify_gdh_submission_success,
 )
+from utils import ArcGISHelper
 from dacite import from_dict
 from flask import request, Response
 from dotenv import load_dotenv, find_dotenv
@@ -46,6 +51,7 @@ from wtforms import (
     FieldList,
     FormField,
 )
+from gdh_import_helper import process_gdh_import
 from wtforms.validators import InputRequired
 import logging
 from logging.config import dictConfig
@@ -144,6 +150,8 @@ class AGOLObjectEntryForm(FlaskForm):
         choices=[(0, "Select System")],
     )
 
+    should_migrate = BooleanField("Private?")
+
 
 class ImportConfirmationForm(FlaskForm):
     """
@@ -155,38 +163,68 @@ class ImportConfirmationForm(FlaskForm):
     """
 
     agol_token = HiddenField()
+    gdh_project_id = HiddenField()
+    gdh_token = HiddenField()
     session_id = HiddenField()
     agol_objects = FieldList(FormField(AGOLObjectEntryForm), max_entries=10)
     submit = SubmitField(label="Import selected data to Geodesignhub →")
 
 
 def create_import_confirmation_form(
-    project_id: str,
+    gdh_project_id: str,
     agol_token: str,
-    agol_project_id: str,
     session_id: str,
     _gdh_systems: AllSystemDetails,
-)->ImportConfirmationForm:
-    agol_objects_form = AGOLObjectEntryForm()
-    agol_objects_form.agol_id = ("0000-0000-0000-0000",)
+    import_format: str,
+    gdh_api_token: str,
+    my_agol_helper: ArcGISHelper,
+) -> ImportConfirmationForm:
+    """
+    Creates and returns an ImportConfirmationForm populated with AGOL items
+    ready for migration and their corresponding destination GDH systems.
+    Args:
+        gdh_project_id (str): The ID of the GDH project.
+        agol_token (str): The authentication token for accessing ArcGIS Online (AGOL).
+        session_id (str): The session identifier for the current operation.
+        _gdh_systems (AllSystemDetails): An object containing details of all GDH systems.
+    Returns:
+        ImportConfirmationForm: A form object containing the AGOL items, their
+        destination GDH systems, and other relevant metadata.
+    """
 
-    agol_objects_form.destination_gdh_system.choices = [
-        (
-            system.id,
-            system.name,
+    _items_for_import = my_agol_helper.get_ok_for_migration_items(
+        data_format=import_format
+    )
+    all_agol_objects_form = []
+    for item_for_import in _items_for_import:
+        agol_objects_form = AGOLObjectEntryForm()
+        agol_objects_form.agol_id = item_for_import.id
+        agol_objects_form.project_or_policy.name = (
+            "project_or_policy_" + item_for_import.id
         )
-        for system in _gdh_systems.systems
-    ]
-    agol_objects_form.name = "Test Label"
+
+        agol_objects_form.should_migrate.name = "migrate_" + item_for_import.id
+        agol_objects_form.destination_gdh_system.name = "system_" + item_for_import.id
+        agol_objects_form.destination_gdh_system.choices = [
+            (
+                system.id,
+                system.name,
+            )
+            for system in _gdh_systems.systems
+        ]
+        agol_objects_form.name = item_for_import.title
+        all_agol_objects_form.append(agol_objects_form)
 
     import_confirmation_form = ImportConfirmationForm()
 
-    import_confirmation_form.project_id = project_id
+    import_confirmation_form.gdh_project_id = gdh_project_id
     import_confirmation_form.agol_token = agol_token
-    import_confirmation_form.agol_project_id = agol_project_id
+    import_confirmation_form.gdh_token = gdh_api_token
+    import_confirmation_form.gdh_project_id = gdh_project_id
+
     import_confirmation_form.session_id = session_id
 
-    import_confirmation_form.agol_objects = [agol_objects_form]
+    import_confirmation_form.agol_objects = all_agol_objects_form
 
     return import_confirmation_form
 
@@ -442,12 +480,13 @@ def import_agol_data():
     """
 
     try:
-        project_id = request.args.get("projectid")
+        gdh_project_id = request.args.get("projectid")
         apitoken = request.args.get("apitoken")
         design_team_id = request.args.get("cteamid")
         design_id = request.args.get("synthesisid")
         agol_token = request.args.get("arcgisToken")
         agol_project_id = request.args.get("gplProjectId")
+        import_format = request.args.get("importFormat", "geojson")
 
     except KeyError:
         error_msg = ErrorResponse(
@@ -458,10 +497,13 @@ def import_agol_data():
 
         return Response(asdict(error_msg), status=400, mimetype=MIMETYPE)
 
+    my_agol_helper = ArcGISHelper(
+        agol_token=agol_token,
+    )
     session_id = uuid.uuid4()
     my_geodesignhub_downloader = GeodesignhubDataDownloader(
         session_id=session_id,
-        project_id=project_id,
+        project_id=gdh_project_id,
         synthesis_id=design_id,
         cteam_id=design_team_id,
         apitoken=apitoken,
@@ -470,42 +512,65 @@ def import_agol_data():
     _gdh_systems_raw = my_geodesignhub_downloader.download_project_systems()
     _gdh_systems = AllSystemDetails(systems=_gdh_systems_raw)
 
-    _items_for_import = my_geodesignhub_downloader.download_items_for_import(
-        agol_token=agol_token, agol_project_id=agol_project_id
-    )
-    if not _items_for_import:
-        error_msg = ErrorResponse(
-            status=0,
-            message="No items found for import. Please check your AGOL project.",
-            code=400,
-        )
-        return Response(asdict(error_msg), status=400, mimetype=MIMETYPE)
-    agol_objects = []
-    for item in _items_for_import:
-        agol_objects.append(
-            AGOLObjectEntryForm(
-                agol_id=item["id"],
-                name=item["name"],
-                project_or_policy=item["type"],
-                destination_gdh_system=0,
-            )
-        )
-    
     import_confirmation_form = create_import_confirmation_form(
-        project_id=project_id, agol_token= agol_token,  agol_project_id=agol_project_id, session_id=session_id, _gdh_systems=_gdh_systems)
-    
+        gdh_project_id=gdh_project_id,
+        agol_token=agol_token,
+        session_id=session_id,
+        _gdh_systems=_gdh_systems,
+        import_format=import_format,
+        gdh_api_token=apitoken,
+        my_agol_helper=my_agol_helper,
+    )
     if import_confirmation_form.validate_on_submit():
-        diagram_upload_form_data = import_confirmation_form.data
+        diagram_upload_form_data = request.form.to_dict()
+
         agol_token = diagram_upload_form_data["agol_token"]
-        agol_project_id = diagram_upload_form_data["agol_project_id"]
         existing_session_id = diagram_upload_form_data["session_id"]
+        gdh_api_token = diagram_upload_form_data["gdh_token"]
+        gdh_project_id = diagram_upload_form_data["gdh_project_id"]
+        # Filter keys that start with 'should_migrate_' and are set to 'on'
+        filtered_items = {
+            key: value
+            for key, value in diagram_upload_form_data.items()
+            if key.startswith("should_migrate_") and value == "on"
+        }
+
+        # Extract the corresponding target system and project/policy for each filtered item
+        items_to_migrate = []
+        for key in filtered_items.keys():
+            item_id = key.split("should_migrate_")[1]
+            target_system = diagram_upload_form_data.get(f"system_{item_id}")
+            target_project_or_policy = diagram_upload_form_data.get(
+                f"project_or_policy_{item_id}"
+            )
+
+            # Replace the dictionary with the dataclass
+            items_to_migrate.append(
+                ImporttoGDHItem(
+                    agol_id=item_id,
+                    target_gdh_system=target_system,
+                    target_gdh_project_or_policy=target_project_or_policy,
+                    target_gdh_project_id=gdh_project_id,
+                    gdh_api_token=gdh_api_token,
+                )
+            )
+        _migrate_to_gdh_payload = ImporttoGDHPayload(agol_helper=my_agol_helper, items_to_migrate=items_to_migrate,file_type=import_format)
+
+        q.enqueue(
+            process_gdh_import,
+            _migrate_to_gdh_payload,
+            
+            on_success=notify_gdh_submission_success,
+            on_failure=notify_gdh_submission_failure,
+            job_id=existing_session_id,
+            job_timeout=3600,
+        )
 
         return redirect(
             url_for(
                 "redirect_after_import",
                 agol_token=agol_token,
                 session_id=existing_session_id,
-                agol_project_id=agol_project_id,
                 status=1,
                 code=307,
             )
@@ -544,7 +609,7 @@ def redirect_after_import():
     status = int(request.args.get("status"))
     agol_token = request.args["agol_token"]
     session_id = request.args["session_id"]
-    agol_project_id = request.args["agol_project_id"]
+
     message = (
         "Your AGOL data is being migrated to Geodesignhub, check your Geodesignhub project in a few minutes..."
         if status
@@ -556,7 +621,6 @@ def redirect_after_import():
         message=message,
         agol_token=agol_token,
         session_id=session_id,
-        agol_project_id=agol_project_id,
     )
 
 

@@ -4,7 +4,7 @@ from geojson import FeatureCollection
 from enum import Enum
 from arcgis.gis import Item
 from arcgis.map import Map
-
+from utils import ArcGISHelper
 
 def custom_asdict_factory(data):
 
@@ -354,3 +354,18 @@ class AGOLWebMapCombinedExtent:
     xmax: float
     ymax: float
     spatialReference: AGOLWebMapSpatialExtent
+
+@dataclass
+class ImporttoGDHItem:
+    agol_id: str
+    target_gdh_system: str
+    target_gdh_project_or_policy: str
+    target_gdh_project_id: str
+    gdh_api_token: str
+    
+
+@dataclass
+class ImporttoGDHPayload:
+    agol_helper: ArcGISHelper
+    items_to_migrate: List[ImporttoGDHItem]
+    file_type:str
