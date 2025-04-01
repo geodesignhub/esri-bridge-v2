@@ -13,6 +13,7 @@ from data_definitions import (
     AGOLWebMapCombinedExtent,
     AGOLWebMapSpatialExtent,
 )
+import shutil
 from PIL import ImageColor
 import geojson
 from geojson import FeatureCollection
@@ -170,14 +171,28 @@ class ArcGISHelper:
 
         return search_results
 
-    def download_item_to_tmp_file(self, item: Item) -> tempfile.NamedTemporaryFile:
-        """Download the item to a temporary file"""
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
-        item.download(save_path=temp_file.name)
+    def clear_downloaded_tmp_file_directory(
+        self, temp_dir: tempfile.TemporaryDirectory
+    ):
+        """
+        Clears the contents of the specified temporary directory by deleting it.
+        Args:
+            temp_dir (tempfile.TemporaryDirectory): The temporary directory to be cleared.
+        Notes:
+            This function uses `shutil.rmtree` to remove the directory and its contents.
+            The `ignore_errors=True` parameter ensures that no exception is raised if the
+            directory does not exist or cannot be deleted.
+        """
 
-        item.close()
-        logger.info(f"Item downloaded to {temp_file.name}")
-        return temp_file
+        shutil.rmtree(temp_dir.name, ignore_errors=True)
+
+    def download_geojson_item_to_tmp_file(self, save_path: str, item: Item) -> bool:
+        """Download the item to a temporary file"""
+        print("Downloading to: %s" % save_path)
+        item.download(save_path=save_path)
+
+        logger.info(f"Item downloaded to {save_path}")
+        return True
 
     def create_gis_object(self) -> GIS:
         gis = GIS("https://www.arcgis.com/", token=self.agol_token)

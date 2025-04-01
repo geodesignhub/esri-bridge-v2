@@ -62,8 +62,9 @@ class GeodesignhubDataDownloader:
         self.synthesis_id = synthesis_id
         d = int(diagram_id) if diagram_id else None
         self.diagram_id = d
+
         self.api_helper = GeodesignHub.GeodesignHubClient(
-            url=config.apisettings["serviceurl"],
+            url=config.external_api_settings["GDH_SERVICE_URL"],
             project_id=self.project_id,
             token=self.apitoken,
         )
@@ -269,7 +270,7 @@ class GeodesignhubDataDownloader:
         self,
     ) -> Union[ErrorResponse, GeodesignhubProjectData]:
         my_api_helper = GeodesignHub.GeodesignHubClient(
-            url=config.apisettings["serviceurl"],
+            url=config.external_api_settings["GDH_SERVICE_URL"],
             project_id=self.project_id,
             token=self.apitoken,
         )

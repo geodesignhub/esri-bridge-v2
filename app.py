@@ -15,8 +15,8 @@ from data_definitions import (
     AllSystemDetails,
     ImportConfirmationPayload,
     ImporttoGDHItem,
-    ImporttoGDHPayload
 )
+from gdh_import_helper import ImporttoGDHPayload
 from notifications_helper import (
     notify_agol_submission_success,
     notify_agol_submission_failure,
@@ -543,23 +543,29 @@ def import_agol_data():
             target_project_or_policy = diagram_upload_form_data.get(
                 f"project_or_policy_{item_id}"
             )
+            item_title = diagram_upload_form_data.get(f"title_{item_id}")
 
             # Replace the dictionary with the dataclass
             items_to_migrate.append(
                 ImporttoGDHItem(
                     agol_id=item_id,
+                    agol_title=item_title,
+                    agol_item_type=import_format,
                     target_gdh_system=target_system,
                     target_gdh_project_or_policy=target_project_or_policy,
                     target_gdh_project_id=gdh_project_id,
                     gdh_api_token=gdh_api_token,
                 )
             )
-        _migrate_to_gdh_payload = ImporttoGDHPayload(agol_helper=my_agol_helper, items_to_migrate=items_to_migrate,file_type=import_format)
-
-        q.enqueue(
+        _migrate_to_gdh_payload = ImporttoGDHPayload(
+            agol_token=agol_token,
+            items_to_migrate=items_to_migrate,
+            file_type=import_format,
+        )
+        print(_migrate_to_gdh_payload)
+        gdh_submission_job = q.enqueue(
             process_gdh_import,
             _migrate_to_gdh_payload,
-            
             on_success=notify_gdh_submission_success,
             on_failure=notify_gdh_submission_failure,
             job_id=existing_session_id,

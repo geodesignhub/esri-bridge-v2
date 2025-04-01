@@ -4,10 +4,9 @@ from geojson import FeatureCollection
 from enum import Enum
 from arcgis.gis import Item
 from arcgis.map import Map
-from utils import ArcGISHelper
+
 
 def custom_asdict_factory(data):
-
     def convert_value(obj):
         if isinstance(obj, Enum):
             return obj.value
@@ -60,12 +59,13 @@ class VolumeInformation:
     min_height: float
     max_height: float
 
+
 @dataclass
 class ImportConfirmationPayload:
     agol_token: str
     agol_project_id: str
     message: str
-    message_type: MessageType    
+    message_type: MessageType
     session_id: str
 
 
@@ -342,10 +342,12 @@ class AGOLItemSchema:
             ],
         }
 
+
 @dataclass
 class AGOLWebMapSpatialExtent:
-    wkid:int
+    wkid: int
     latestWkid: int
+
 
 @dataclass
 class AGOLWebMapCombinedExtent:
@@ -355,17 +357,13 @@ class AGOLWebMapCombinedExtent:
     ymax: float
     spatialReference: AGOLWebMapSpatialExtent
 
+
 @dataclass
 class ImporttoGDHItem:
     agol_id: str
+    agol_title: str
+    agol_item_type: str
     target_gdh_system: str
     target_gdh_project_or_policy: str
     target_gdh_project_id: str
     gdh_api_token: str
-    
-
-@dataclass
-class ImporttoGDHPayload:
-    agol_helper: ArcGISHelper
-    items_to_migrate: List[ImporttoGDHItem]
-    file_type:str

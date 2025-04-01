@@ -24,6 +24,7 @@ class GeodesignHubClient:
 
     def get_project_details(self):
         """This method gets all systems for a particular project."""
+        print(self.sec_url)
         sec_url = self.sec_url + "projects" + "/" + self.project_id + "/"
         r = self.session.get(sec_url)
         return r

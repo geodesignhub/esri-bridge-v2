@@ -7,14 +7,17 @@ load_dotenv(os.path.join(basedir, ".env"))
 
 
 class Config(object):
-    serviceurl = (
-        os.environ.get("SERVICE_URL", "https://www.geodesignhub.com/api/v1/"),
-    )
-    REDIS_URL = environ.get("REDIS_URL", "redis://localhost:6379")    
+    REDIS_URL = environ.get("REDIS_URL", "redis://localhost:6379")
     LANGUAGES = {"en": "English"}
 
 
-apisettings = {
-    "serviceurl": environ.get("SERVICE_URL", "https://www.geodesignhub.com/api/v1/")
+external_api_settings = {
+    "S3_ENDPOINT": environ.get("S3_ENDPOINT", "https://s3.amazonaws.com"),
+    "S3_BUCKET_NAME": environ.get("S3_BUCKET_NAME", "default-bucket"),
+    "S3_KEY": environ.get("S3_KEY", "default-key"),
+    "S3_SECRET": environ.get("S3_SECRET", "default-secret"),
+    "S3_CDN_ENDPOINT": environ.get("S3_CDN_ENDPOINT", "https://cdn.example.com"),
+    "GDH_SERVICE_URL": environ.get(
+        "SERVICE_URL", "https://www.geodesignhub.com/api/v1/"
+    ),
 }
-
