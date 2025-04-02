@@ -18,10 +18,10 @@ As a pre-requisite to using this plugin, you must create a project with ESRI con
 ### Screenshots
 ![export design](images/export-to-agol.jpg)
 
-### Import data from Geoplanner
+### Import data from ArcGIS Online
 Available for Project Administrators
 
-### Export to Geoplanner / ArcGIS
+### Export to ArcGIS
 Available to everyone
 
 ## Adding the plugin
