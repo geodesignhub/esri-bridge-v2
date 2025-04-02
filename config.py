@@ -12,7 +12,6 @@ class Config(object):
 
 
 external_api_settings = {
-    "S3_ENDPOINT": environ.get("S3_ENDPOINT", "https://s3.amazonaws.com"),
     "S3_BUCKET_NAME": environ.get("S3_BUCKET_NAME", "default-bucket"),
     "S3_KEY": environ.get("S3_KEY", "default-key"),
     "S3_SECRET": environ.get("S3_SECRET", "default-secret"),

@@ -13,6 +13,8 @@ import boto3
 from botocore.exceptions import ClientError
 import config
 import shutil
+from conn import get_redis
+import redis
 
 logger = logging.getLogger("esri-gdh-bridge")
 
@@ -30,12 +32,21 @@ class ImporttoGDHPayload:
         file_type (str): The type of file being processed (e.g., 'shapefile', 'geojson').
     """
 
+    session_id: str
     agol_token: str
     items_to_migrate: List[ImporttoGDHItem]
     file_type: str
 
 
-def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload):
+def log_to_redis(message: str, session_id: str, redis_instance: redis.Redis):
+    """
+    Logs a message to Redis associated with the session ID.
+    """
+    logger.info(message)
+    redis_instance.lpush(f"session_logs:{session_id}", message)
+
+
+def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
     """
     Handles the migration of items from ArcGIS Online to Geodesignhub.
 
@@ -71,193 +82,321 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload):
     Raises:
         Exception: Logs and raises exceptions encountered during the migration process.
     """
+    my_agol_helper: ArcGISHelper = ArcGISHelper(
+        agol_token=_migrate_to_gdh_payload.agol_token
+    )
+    items_to_migrate: List[ImporttoGDHItem] = _migrate_to_gdh_payload.items_to_migrate
 
-    my_agol_helper = ArcGISHelper(agol_token=_migrate_to_gdh_payload.agol_token)
-    items_to_migrate = _migrate_to_gdh_payload.items_to_migrate
+    file_type: str = _migrate_to_gdh_payload.file_type
 
-    file_type = _migrate_to_gdh_payload.file_type
-    logger.info(f"Starting migration process for file type: {file_type}")
+    r: redis.Redis = get_redis()
 
-    S3_CDN_ENDPOINT = config.external_api_settings["S3_ENDPOINT"]
-    session = boto3.session.Session()
-    client = session.client(
+    log_to_redis(
+        f"Starting migration process for file type: {file_type}",
+        _migrate_to_gdh_payload.session_id,
+        r,
+    )
+
+    S3_CDN_ENDPOINT: str = config.external_api_settings["S3_CDN_ENDPOINT"]
+    session: boto3.session.Session = boto3.session.Session()
+    log_to_redis(
+        "Initializing S3 client session.", _migrate_to_gdh_payload.session_id, r
+    )
+    client: boto3.client = session.client(
         "s3",
         region_name="ams3",
         endpoint_url="https://ams3.digitaloceanspaces.com",
         aws_access_key_id=config.external_api_settings["S3_KEY"],
         aws_secret_access_key=config.external_api_settings["S3_SECRET"],
     )
-    bucket_name = config.external_api_settings["S3_BUCKET_NAME"]
+    bucket_name: str = config.external_api_settings["S3_BUCKET_NAME"]
+    log_to_redis(
+        f"Attempting to connect to the S3 bucket: {bucket_name}.",
+        _migrate_to_gdh_payload.session_id,
+        r,
+    )
     try:
         client.head_bucket(Bucket=bucket_name)
-        logger.info(f"Successfully connected to the bucket '{bucket_name}'.")
+        log_to_redis(
+            f"Successfully connected to the bucket '{bucket_name}'.",
+            _migrate_to_gdh_payload.session_id,
+            r,
+        )
     except Exception as e:
-        logger.error(f"Failed to connect to the bucket '{bucket_name}': {e}")
+        log_to_redis(
+            f"Failed to connect to the bucket '{bucket_name}': {e}",
+            _migrate_to_gdh_payload.session_id,
+            r,
+        )
         exit(1)
 
-    temp_dir = tempfile.TemporaryDirectory(prefix="esri_gdh_import_")
-    
+    temp_dir: tempfile.TemporaryDirectory = tempfile.TemporaryDirectory(
+        prefix="esri_gdh_import_", delete=False
+    )
+    log_to_redis(
+        f"Created temporary directory at {temp_dir.name}.",
+        _migrate_to_gdh_payload.session_id,
+        r,
+    )
+
     for item_to_process in items_to_migrate:
-        if item_to_process.agol_item_type == file_type == "geojson":
-            logger.info(
-                f"Processing item {item_to_process.agol_id} of type {file_type}"
+        log_to_redis(
+            f"Processing item with ID {item_to_process.agol_id}.",
+            _migrate_to_gdh_payload.session_id,
+            r,
+        )
+        if item_to_process.agol_item_type == file_type == "geopackage":
+            log_to_redis(
+                f"Item {item_to_process.agol_id} matches the file type {file_type}.",
+                _migrate_to_gdh_payload.session_id,
+                r,
             )
             # Get the item from ArcGIS Online
-            gis = my_agol_helper.get_gis()
-            item = gis.content.get(item_to_process.agol_id)
+            log_to_redis(
+                "Retrieving GIS object from ArcGIS Online.",
+                _migrate_to_gdh_payload.session_id,
+                r,
+            )
+            gis: object = my_agol_helper.get_gis()
+            item: object = gis.content.get(item_to_process.agol_id)
 
             if not item:
-                logger.warning(f"Item with ID {item_to_process.agol_id} not found.")
+                log_to_redis(
+                    f"Item with ID {item_to_process.agol_id} not found.",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
                 continue
 
+            log_to_redis(
+                f"Downloading item {item_to_process.agol_id} to temporary directory.",
+                _migrate_to_gdh_payload.session_id,
+                r,
+            )
             my_agol_helper.download_geojson_item_to_tmp_file(
                 item=item, save_path=temp_dir.name
             )
+
             # Get all the *.geojson files in the directory
-            downloaded_file = [
-                f for f in os.listdir(temp_dir.name) if f.endswith(".geojson")
+            log_to_redis(
+                "Searching for downloaded GeoPackage files.",
+                _migrate_to_gdh_payload.session_id,
+                r,
+            )
+            downloaded_file_name: str = [
+                f for f in os.listdir(temp_dir.name) if f.endswith(".gpkg")
             ][0]
-            downloaded_file = os.path.join(temp_dir.name, downloaded_file)
-            print(f"Downloaded file: {downloaded_file}")
+
+            downloaded_file: str = os.path.join(temp_dir.name, downloaded_file_name)
+            log_to_redis(
+                f"Found downloaded file: {downloaded_file}.",
+                _migrate_to_gdh_payload.session_id,
+                r,
+            )
             # Load the downloaded file into a GeoDataFrame
+            all_gdf: List[gpd.GeoDataFrame] = []
             try:
-                gdf = gpd.read_file(downloaded_file)
+                log_to_redis(
+                    f"Reading layers from GeoPackage file: {downloaded_file}.",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
+                for layername in fiona.listlayers(downloaded_file):
+                    log_to_redis(
+                        f"Processing layer: {layername}.",
+                        _migrate_to_gdh_payload.session_id,
+                        r,
+                    )
+                    with fiona.open(downloaded_file, layer=layername):
+                        # Read the file into a GeoDataFrame
+                        gdf: gpd.GeoDataFrame = gpd.read_file(
+                            downloaded_file, layer=layername
+                        )
+                        if gdf.empty:
+                            log_to_redis(
+                                "Encountered an empty GeoDataFrame, skipping.",
+                                _migrate_to_gdh_payload.session_id,
+                                r,
+                            )
+                        else:
+                            all_gdf.append(gdf)
+
             except Exception as e:
-                logger.error(f"Error reading file {downloaded_file}: {e}")
-                # my_agol_helper.clear_downloaded_tmp_file_directory(temp_dir=temp_dir)
+                log_to_redis(
+                    f"Error reading file {downloaded_file}: {e}",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
                 continue
             # Simplify the geometry
-            simplified_gdf = gdf.copy()
-            simplified_gdf["geometry"] = simplified_gdf["geometry"].simplify(
-                tolerance=0.01, preserve_topology=True
-            )
+            for gdf in all_gdf:
+                log_to_redis(
+                    "Simplifying geometries in GeoDataFrame.",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
+                simplified_gdf: gpd.GeoDataFrame = gdf.copy()
+                simplified_gdf["geometry"] = simplified_gdf["geometry"].simplify(
+                    tolerance=0.01, preserve_topology=True
+                )
 
-            # Save the original GeoJSON
-            original_geojson_path = downloaded_file.name.replace(
-                ".tmp", "_original.geojson"
-            )
-            gdf.to_file(original_geojson_path, driver="GeoJSON")
+                # Save the original GeoDataFrame as FlatGeobuf (FGB)
+                original_fgb_path: str = os.path.join(
+                    temp_dir.name, f"{item_to_process.agol_id}.fgb"
+                )
+                gdf.to_file(original_fgb_path, driver="FlatGeobuf")
+                log_to_redis(
+                    f"Saved original FGB file at {original_fgb_path}.",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
 
-            # Save the simplified GeoJSON
-            simplified_geojson_path = downloaded_file.name.replace(
-                ".tmp", "_simplified.geojson"
-            )
-            simplified_gdf.to_file(simplified_geojson_path, driver="GeoJSON")
+                # Save the simplified GeoDataFrame as FlatGeobuf (FGB)
+                simplified_fgb_path: str = os.path.join(
+                    temp_dir.name, f"{item_to_process.agol_id}_simplified.fgb"
+                )
+                simplified_gdf.to_file(simplified_fgb_path, driver="FlatGeobuf")
+                log_to_redis(
+                    f"Saved simplified FGB file at {simplified_fgb_path}.",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
 
-            # Delete the downloaded temporary file
-            os.unlink(downloaded_file.name)
-            # Save as FlatGeobuf (FGB) for original GeoJSON
-            original_fgb_path = original_geojson_path.replace(
-                "_original.geojson", "_original.fgb"
-            )
-            with fiona.open(original_geojson_path, "r") as src:
-                with fiona.open(
-                    original_fgb_path,
-                    "w",
-                    driver="FlatGeobuf",
-                    crs=src.crs,
-                    schema=src.schema,
-                ) as dst:
-                    for feature in src:
-                        dst.write(feature)
-
-            # Save as FlatGeobuf (FGB) for simplified GeoJSON
-            simplified_fgb_path = simplified_geojson_path.replace(
-                "_simplified.geojson", "_simplified.fgb"
-            )
-            with fiona.open(simplified_geojson_path, "r") as src:
-                with fiona.open(
-                    simplified_fgb_path,
-                    "w",
-                    driver="FlatGeobuf",
-                    crs=src.crs,
-                    schema=src.schema,
-                ) as dst:
-                    for feature in src:
-                        dst.write(feature)
-
-            # Delete the original GeoJSON files
-            os.unlink(original_geojson_path)
-            os.unlink(simplified_geojson_path)
-
-            # Create a target path in the bucket
-            fgb_basepath = os.path.basename(original_fgb_path)
-            simplified_fgb_path = os.path.basename(original_fgb_path)
-
-            target_path = f"projects/{item_to_process.target_gdh_project_id}/systems/{item_to_process.target_gdh_system}/"
-            logger.info(f"Target path in the bucket: {target_path}")
-            # Upload the original FGB to the S3 bucket
+                log_to_redis(
+                    f"Saved original and simplified FGB files for item {item_to_process.agol_id}.",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
+            original_file_name: str = os.path.basename(original_fgb_path)
+            simplified_file_name: str = os.path.basename(simplified_fgb_path)
+            target_path: str = f"projects/{item_to_process.target_gdh_project_id}/systems/{item_to_process.target_gdh_system}/"
             try:
+                log_to_redis(
+                    f"Uploading original FGB file to S3 bucket at {target_path}.",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
                 with open(original_fgb_path, "rb") as f:
                     client.upload_fileobj(
                         f,
                         bucket_name,
-                        os.path.join(target_path, fgb_basepath),
+                        os.path.join(target_path, original_file_name),
                     )
-                    logger.info(
-                        f"Uploaded {original_fgb_path} to S3 bucket {bucket_name} at {target_path}."
+                    log_to_redis(
+                        f"Uploaded {original_fgb_path} to S3 bucket {bucket_name} at {target_path}.",
+                        _migrate_to_gdh_payload.session_id,
+                        r,
                     )
             except ClientError as e:
-                logger.error(f"Failed to upload {original_fgb_path} to S3 bucket: {e}")
+                log_to_redis(
+                    f"Failed to upload {original_fgb_path} to S3 bucket: {e}",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
                 raise
 
             # Upload the simplified FGB to the S3 bucket
             try:
+                log_to_redis(
+                    f"Uploading simplified FGB file to S3 bucket at {target_path}.",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
                 with open(simplified_fgb_path, "rb") as f:
                     client.upload_fileobj(
                         f,
                         bucket_name,
-                        os.path.join(target_path, simplified_fgb_path),
+                        os.path.join(target_path, simplified_file_name),
                     )
-                    logger.info(
-                        f"Uploaded {simplified_fgb_path} to S3 bucket {bucket_name} at {target_path}."
+                    log_to_redis(
+                        f"Uploaded {simplified_fgb_path} to S3 bucket {bucket_name} at {target_path}.",
+                        _migrate_to_gdh_payload.session_id,
+                        r,
                     )
             except ClientError as e:
-                logger.error(
-                    f"Failed to upload {simplified_fgb_path} to S3 bucket: {e}"
+                log_to_redis(
+                    f"Failed to upload {simplified_fgb_path} to S3 bucket: {e}",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
                 )
                 raise
 
-            # Delete the local FGB files after upload
-            os.unlink(original_fgb_path)
-            os.unlink(simplified_fgb_path)
-
             # Send to Geodesignhub project
-            gdh_api_helper = GeodesignHub.GeodesignHubClient(
-                url=config.external_api_settings["GDH_SERVICE_URL"],
-                project_id=item_to_process.target_gdh_project_id,
-                token=item_to_process.gdh_token,
+            log_to_redis(
+                "Initializing GeodesignHub API client.",
+                _migrate_to_gdh_payload.session_id,
+                r,
+            )
+            gdh_api_helper: GeodesignHub.GeodesignHubClient = (
+                GeodesignHub.GeodesignHubClient(
+                    url=config.external_api_settings["GDH_SERVICE_URL"],
+                    project_id=item_to_process.target_gdh_project_id,
+                    token=item_to_process.gdh_api_token,
+                )
             )
 
-            def post_to_gdh_external_geometries(url, description):
-                gdh_api_helper.post_as_diagram_with_external_geometries(
-                    url=url,
-                    layer_type="fgb-layer",
-                    projectorpolicy=item_to_process.target_gdh_project_or_policy,
-                    featuretype="polygon",
-                    description=description,
-                    sysid=item_to_process.target_gdh_system,
-                    fundingtype="pu",
-                    cost=0,
-                    costtype="t",
-                    additional_metadata={},
+            def post_to_gdh_external_geometries(url: str, description: str) -> None:
+                log_to_redis(
+                    f"Posting data to GeodesignHub: {description}.",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
+                )
+                diagram_response = (
+                    gdh_api_helper.post_as_diagram_with_external_geometries(
+                        url=url,
+                        layer_type="fgb-layer",
+                        projectorpolicy=item_to_process.target_gdh_project_or_policy,
+                        featuretype="polygon",
+                        description=description,
+                        sysid=item_to_process.target_gdh_system,
+                        fundingtype="pu",
+                        cost=0,
+                        costtype="t",
+                    )
+                )
+                log_to_redis(
+                    f"Posted data to GeodesignHub: {diagram_response.text}.",
+                    _migrate_to_gdh_payload.session_id,
+                    r,
                 )
 
-            print(S3_CDN_ENDPOINT + "/" + target_path + "/" + fgb_basepath)
-            print(S3_CDN_ENDPOINT + "/" + target_path + "/" + simplified_fgb_path)
-            # # Post original FGB
-            # post_to_gdh_external_geometries(
-            #     url=S3_CDN_ENDPOINT + "/" + target_path + "/" + fgb_basepath,
-            #     description="Imported from AGOL (Original)",
-            # )
+            original_fgb_url: str = (
+                S3_CDN_ENDPOINT + "/" + target_path + "/" + original_file_name
+            )
 
-            # # Post simplified FGB
-            # post_to_gdh_external_geometries(
-            #     url=S3_CDN_ENDPOINT + "/" + target_path + "/" + simplified_fgb_path,
-            #     description="Imported from AGOL (Simplified)",
-            # )
+            simplified_fgb_url: str = (
+                S3_CDN_ENDPOINT + "/" + target_path + "/" + simplified_file_name
+            )
+            # Post original FGB
+            log_to_redis(
+                "Posting original FGB to GeodesignHub.",
+                _migrate_to_gdh_payload.session_id,
+                r,
+            )
+            post_to_gdh_external_geometries(
+                url=original_fgb_url,
+                description="Imported from AGOL (Original)",
+            )
 
-            # os.unlink(downloaded_file.name)
+            # Post simplified FGB
+            log_to_redis(
+                "Posting simplified FGB to GeodesignHub.",
+                _migrate_to_gdh_payload.session_id,
+                r,
+            )
+            post_to_gdh_external_geometries(
+                url=simplified_fgb_url,
+                description="Imported from AGOL (Simplified)",
+            )
 
-        # shutil.rmtree(temp_dir.name, ignore_errors=True)
-        # logger.info(f"Temporary directory {temp_dir.name} deleted.")
+        log_to_redis(
+            f"Cleaning up temporary directory {temp_dir.name}.",
+            _migrate_to_gdh_payload.session_id,
+            r,
+        )
+        shutil.rmtree(temp_dir.name, ignore_errors=True)
+        log_to_redis(
+            f"Temporary directory {temp_dir.name} deleted.",
+            _migrate_to_gdh_payload.session_id,
+            r,
+        )

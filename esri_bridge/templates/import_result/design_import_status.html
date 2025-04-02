@@ -18,7 +18,7 @@
                 <div class="col-md-12">
                 
                     <button class="btn btn-outline-info d-none" id="get_migration_status" type="button"
-                        onclick="migration_helper.get_migration_status()" class="btn btn-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Check status of the export">Query status
+                        onclick="migration_helper.get_import_migration_status()" class="btn btn-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Check status of the export">Query status
                     </button>
                     <p>&nbsp;</p>
                 </div>
@@ -75,17 +75,35 @@
 
                     status_ele.classList.remove('alert-info');
                     status_ele.classList.add('alert-success');
-                    let a = document.createElement('a');
-                    let nbsp = document.createTextNode("\u00A0");
-                    a.href = agol_processing_response.success_url;
-                    a.innerHTML = "see the layer on ArcGIS ↗"
-                    a.target = "_blank"
-                    status_ele.appendChild(span);
-                    status_ele.appendChild(nbsp);
-                    status_ele.appendChild(a);
+                    let messages = agol_processing_response.message || [];
+                    if (messages.length > 0) {
+                        let ul = document.createElement('ul');
+                        messages.forEach((msg) => {
+                            let li = document.createElement('li');
+                            li.textContent = msg;
+                            ul.appendChild(li);
+                        });
+                        status_ele.appendChild(ul);
+                    }
                 }
                 else if (agol_processing_response.status == 2) {
                  
+                            
+                    let get_migration_status_cont = document.getElementById('get_migration_status');
+                    get_migration_status_cont.classList.add('d-none');
+
+                    status_ele.classList.remove('alert-info');
+                    status_ele.classList.add('alert-success');
+                    let messages = agol_processing_response.message || [];
+                    if (messages.length > 0) {
+                        let ul = document.createElement('ul');
+                        messages.forEach((msg) => {
+                            let li = document.createElement('li');
+                            li.textContent = msg;
+                            ul.appendChild(li);
+                        });
+                        status_ele.appendChild(ul);
+                    }
                     status_ele.classList.add('alert-info');
                 }
             }).catch((error) => {
@@ -102,6 +120,12 @@
         this.get_migration_status =function() {
             
             let migration_status_url = window.location.origin + '/get_agol_processing_result?session_id=' + session_id;
+            get_agol_processing_results(migration_status_url)
+
+        }
+        this.get_import_migration_status =function() {
+            
+            let migration_status_url = window.location.origin + '/get_gdh_import_processing_result?session_id=' + session_id;
             get_agol_processing_results(migration_status_url)
 
         }

@@ -221,6 +221,12 @@ class AGOLExportStatus:
 
 
 @dataclass
+class AGOLImportStatus:
+    status: int
+    message: list[str]
+    success_url: str
+
+@dataclass
 class AGOLSubmissionPayload:
     design_data: GeodesignhubDataStorage
     tags_data: GeodesignhubProjectTags

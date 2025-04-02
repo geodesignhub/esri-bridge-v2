@@ -153,7 +153,7 @@ class ArcGISHelper:
         """Get all items that are ok for migration from AGOL"""
         owner = self.gis.users.me.username
         # Define a lookup for data_format
-        data_format_lookup = {"geojson": "GeoJSON"}
+        data_format_lookup = {"geojson": "GeoJSON", "geopackage": "GeoPackage"}
 
         # Validate and get the format from the lookup
         if data_format not in data_format_lookup:

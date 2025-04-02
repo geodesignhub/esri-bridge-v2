@@ -5,6 +5,7 @@ from data_definitions import (
     ExportConfirmationPayload,
     MessageType,
     AGOLExportStatus,
+    AGOLImportStatus,
     custom_asdict_factory,
     GeodesignhubDesignDetail,
     GeodesignhubDataStorage,
@@ -227,6 +228,44 @@ def create_import_confirmation_form(
     import_confirmation_form.agol_objects = all_agol_objects_form
 
     return import_confirmation_form
+
+
+@app.route("/get_gdh_import_processing_result", methods=["GET"])
+def get_gdh_import_processing_result():
+    """
+    Retrieves all Redis messages for a given session ID.
+
+    Args:
+        session_id (str): The session ID to retrieve messages for.
+        redis_instance (redis.Redis): The Redis instance to query.
+
+    Returns:
+        List[str]: A list of messages associated with the session ID.
+    """
+    session_id = request.args.get("session_id", "0")
+
+    redis_instance = get_redis()
+    try:
+        messages = redis_instance.lrange(f"session_logs:{session_id}", 0, -1)
+        all_messages = [message.decode("utf-8") for message in messages]
+
+        import_response =  AGOLImportStatus(
+            status=1,
+            message=all_messages,
+            success_url="",
+        )
+    except Exception as e:
+        
+        logger.error(f"Error retrieving messages for session {session_id}: {e}")
+
+        import_response =  AGOLImportStatus(
+            status=2,
+            message="",
+            success_url="",
+        )
+    
+    import_response = asdict(import_response)
+    return Response(json.dumps(import_response), status=200, mimetype=MIMETYPE)
 
 
 @app.route("/get_agol_processing_result", methods=["GET"])
@@ -486,7 +525,7 @@ def import_agol_data():
         design_id = request.args.get("synthesisid")
         agol_token = request.args.get("arcgisToken")
         agol_project_id = request.args.get("gplProjectId")
-        import_format = request.args.get("importFormat", "geojson")
+        import_format = request.args.get("importFormat", "geopackage")
 
     except KeyError:
         error_msg = ErrorResponse(
@@ -558,11 +597,12 @@ def import_agol_data():
                 )
             )
         _migrate_to_gdh_payload = ImporttoGDHPayload(
+            session_id=existing_session_id,
             agol_token=agol_token,
             items_to_migrate=items_to_migrate,
             file_type=import_format,
         )
-        print(_migrate_to_gdh_payload)
+
         gdh_submission_job = q.enqueue(
             process_gdh_import,
             _migrate_to_gdh_payload,

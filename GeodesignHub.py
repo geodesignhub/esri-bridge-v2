@@ -19,7 +19,10 @@ class GeodesignHubClient:
         self.token = token
         self.sec_url = url if url else "https://www.geodesignhub.com/api/v1/"
         self.session = requests.Session()
-        headers = {"Authorization": "Token " + self.token}
+        headers = {
+            "Authorization": "Token " + self.token,
+            "Content-Type": "application/json; charset=utf-8",
+        }
         self.session.headers = headers
 
     def get_project_details(self):
@@ -306,7 +309,7 @@ class GeodesignHubClient:
     ):
         """Create a self.session object with correct headers and creds."""
         securl = (
-            self.securl
+            self.sec_url
             + "projects"
             + "/"
             + self.project_id
@@ -322,16 +325,17 @@ class GeodesignHubClient:
         additional_metadata = additional_metadata if additional_metadata else {}
 
         postdata = {
-            "url ": url,
+            "url": url,
             "description": description,
             "layer_type": layer_type,
             "featuretype": featuretype,
             "fundingtype": fundingtype,
             "cost": cost,
-            "costtype": costtype,
+            "cost_type": costtype,
             "additional_metadata": additional_metadata,
         }
         r = self.session.post(securl, data=json.dumps(postdata))
+        print(r.json())
         return r
 
     def get_single_diagram(self, diagid: int):
