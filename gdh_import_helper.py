@@ -219,6 +219,15 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                                 r,
                             )
                         else:
+                            # Reproject the GeoDataFrame to EPSG:3857
+                            if gdf.crs != "EPSG:3857":
+                                log_to_redis(
+                                    f"Reprojecting GeoDataFrame from {gdf.crs} to EPSG:3857.",
+                                    _migrate_to_gdh_payload.session_id,
+                                    r,
+                                )
+                                gdf = gdf.to_crs(epsg=3857)
+
                             all_gdf.append(gdf)
 
             except Exception as e:
