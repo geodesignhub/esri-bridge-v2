@@ -216,14 +216,14 @@ class GeodesignhubProjectData:
 @dataclass
 class AGOLExportStatus:
     status: int
-    message: str
+    messages:  list[str]
     success_url: str
 
 
 @dataclass
 class AGOLImportStatus:
     status: int
-    message: list[str]
+    messages: list[str]
     success_url: str
 
 @dataclass

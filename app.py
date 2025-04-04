@@ -248,23 +248,23 @@ def get_gdh_import_processing_result():
     try:
         messages = redis_instance.lrange(f"session_logs:{session_id}", 0, -1)
         all_messages = [message.decode("utf-8") for message in messages]
-
-        import_response =  AGOLImportStatus(
-            status=1,
-            message=all_messages,
+        
+        import_response = AGOLImportStatus(
+            status=2,
+            messages=all_messages,
             success_url="",
         )
     except Exception as e:
-        
         logger.error(f"Error retrieving messages for session {session_id}: {e}")
 
-        import_response =  AGOLImportStatus(
-            status=2,
-            message="",
+        import_response = AGOLImportStatus(
+            status=1,
+            messages=["There was a error retrieving messages"],
             success_url="",
         )
-    
+
     import_response = asdict(import_response)
+    print(import_response)
     return Response(json.dumps(import_response), status=200, mimetype=MIMETYPE)
 
 
@@ -279,8 +279,10 @@ def get_agol_processing_result():
         agol_status = json.loads(s)
     else:
         agol_export_status = AGOLExportStatus(
-            status=2,
-            message="Export to ArcGIS Online is still in progress, please check back afer a few minutes",
+            status=1,
+            messages=[
+                "Import from ArcGIS Online is still in progress, please check back afer a few minutes"
+            ],
             success_url="",
         )
         agol_status = asdict(agol_export_status)

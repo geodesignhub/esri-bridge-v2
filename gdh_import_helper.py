@@ -262,9 +262,7 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                     _migrate_to_gdh_payload.session_id,
                     r,
                 )
-                print(gdf.head())
                 simplified_gdf: gpd.GeoDataFrame = gdf.copy()
-                print(simplified_gdf.head())
                 simplified_gdf["geometry"] = simplified_gdf["geometry"].simplify(
                     tolerance=0.01, preserve_topology=True
                 )
@@ -356,7 +354,11 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                 )
             )
 
-            def post_to_gdh_external_geometries(gdh_api_helper: GeodesignHub.GeodesignHubClient,url: str, description: str) -> None:
+            def post_to_gdh_external_geometries(
+                gdh_api_helper: GeodesignHub.GeodesignHubClient,
+                url: str,
+                description: str,
+            ) -> None:
                 log_to_redis(
                     f"Posting data to GeodesignHub: {description}.",
                     _migrate_to_gdh_payload.session_id,
