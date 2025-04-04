@@ -46,6 +46,52 @@ def log_to_redis(message: str, session_id: str, redis_instance: redis.Redis):
     redis_instance.lpush(f"session_logs:{session_id}", message)
 
 
+def process_geopackage_layers(
+    downloaded_file: str, session_id: str, redis_instance: redis.Redis
+) -> List[gpd.GeoDataFrame]:
+    """
+    Processes layers from a GeoPackage file and returns a list of GeoDataFrames.
+
+    Args:
+        downloaded_file (str): Path to the downloaded GeoPackage file.
+        session_id (str): Session ID for logging purposes.
+        redis_instance (redis.Redis): Redis instance for logging.
+
+    Returns:
+        List[gpd.GeoDataFrame]: A list of GeoDataFrames for each processed layer.
+    """
+    log_to_redis(
+        f"Reading layers from GeoPackage file: {downloaded_file}.",
+        session_id,
+        redis_instance,
+    )
+    all_gdf: List[gpd.GeoDataFrame] = []
+    for layername in fiona.listlayers(downloaded_file):
+        log_to_redis(
+            f"Processing layer: {layername}.",
+            session_id,
+            redis_instance,
+        )
+        with fiona.open(downloaded_file, layer=layername):
+            # Read the file into a GeoDataFrame
+            gdf: gpd.GeoDataFrame = gpd.read_file(downloaded_file, layer=layername)
+            if gdf.empty:
+                log_to_redis(
+                    "Encountered an empty GeoDataFrame, skipping.",
+                    session_id,
+                    redis_instance,
+                )
+            else:
+                exploded = gdf.explode(index_parts=False)
+
+                filtered = exploded.filter(["geometry"])
+                rp_gdf = filtered.to_crs(epsg=4326)
+
+                all_gdf.append(rp_gdf)
+
+    return all_gdf
+
+
 def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
     """
     Handles the migration of items from ArcGIS Online to Geodesignhub.
@@ -194,41 +240,13 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                 r,
             )
             # Load the downloaded file into a GeoDataFrame
-            all_gdf: List[gpd.GeoDataFrame] = []
-            try:
-                log_to_redis(
-                    f"Reading layers from GeoPackage file: {downloaded_file}.",
-                    _migrate_to_gdh_payload.session_id,
-                    r,
-                )
-                for layername in fiona.listlayers(downloaded_file):
-                    log_to_redis(
-                        f"Processing layer: {layername}.",
-                        _migrate_to_gdh_payload.session_id,
-                        r,
-                    )
-                    with fiona.open(downloaded_file, layer=layername):
-                        # Read the file into a GeoDataFrame
-                        gdf: gpd.GeoDataFrame = gpd.read_file(
-                            downloaded_file, layer=layername
-                        )
-                        if gdf.empty:
-                            log_to_redis(
-                                "Encountered an empty GeoDataFrame, skipping.",
-                                _migrate_to_gdh_payload.session_id,
-                                r,
-                            )
-                        else:
-                            # Reproject the GeoDataFrame to EPSG:3857
-                            if gdf.crs != "EPSG:3857":
-                                log_to_redis(
-                                    f"Reprojecting GeoDataFrame from {gdf.crs} to EPSG:3857.",
-                                    _migrate_to_gdh_payload.session_id,
-                                    r,
-                                )
-                                gdf = gdf.to_crs(epsg=3857)
 
-                            all_gdf.append(gdf)
+            try:
+                all_gdf = process_geopackage_layers(
+                    downloaded_file=downloaded_file,
+                    session_id=_migrate_to_gdh_payload.session_id,
+                    redis_instance=r,
+                )
 
             except Exception as e:
                 log_to_redis(
@@ -244,7 +262,9 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                     _migrate_to_gdh_payload.session_id,
                     r,
                 )
+                print(gdf.head())
                 simplified_gdf: gpd.GeoDataFrame = gdf.copy()
+                print(simplified_gdf.head())
                 simplified_gdf["geometry"] = simplified_gdf["geometry"].simplify(
                     tolerance=0.01, preserve_topology=True
                 )
@@ -254,31 +274,21 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                     temp_dir.name, f"{item_to_process.agol_id}.fgb"
                 )
                 gdf.to_file(original_fgb_path, driver="FlatGeobuf")
-                log_to_redis(
-                    f"Saved original FGB file at {original_fgb_path}.",
-                    _migrate_to_gdh_payload.session_id,
-                    r,
-                )
-
                 # Save the simplified GeoDataFrame as FlatGeobuf (FGB)
                 simplified_fgb_path: str = os.path.join(
-                    temp_dir.name, f"{item_to_process.agol_id}_simplified.fgb"
+                    temp_dir.name, f"{item_to_process.agol_id}_generalised.fgb"
                 )
                 simplified_gdf.to_file(simplified_fgb_path, driver="FlatGeobuf")
-                log_to_redis(
-                    f"Saved simplified FGB file at {simplified_fgb_path}.",
-                    _migrate_to_gdh_payload.session_id,
-                    r,
-                )
 
                 log_to_redis(
                     f"Saved original and simplified FGB files for item {item_to_process.agol_id}.",
                     _migrate_to_gdh_payload.session_id,
                     r,
                 )
+
             original_file_name: str = os.path.basename(original_fgb_path)
             simplified_file_name: str = os.path.basename(simplified_fgb_path)
-            target_path: str = f"projects/{item_to_process.target_gdh_project_id}/systems/{item_to_process.target_gdh_system}/"
+            target_path: str = f"projects/{item_to_process.target_gdh_project_id}/systems/{item_to_process.target_gdh_system}"
             try:
                 log_to_redis(
                     f"Uploading original FGB file to S3 bucket at {target_path}.",
@@ -290,6 +300,7 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                         f,
                         bucket_name,
                         os.path.join(target_path, original_file_name),
+                        ExtraArgs={"ACL": "public-read"},
                     )
                     log_to_redis(
                         f"Uploaded {original_fgb_path} to S3 bucket {bucket_name} at {target_path}.",
@@ -316,6 +327,7 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                         f,
                         bucket_name,
                         os.path.join(target_path, simplified_file_name),
+                        ExtraArgs={"ACL": "public-read"},
                     )
                     log_to_redis(
                         f"Uploaded {simplified_fgb_path} to S3 bucket {bucket_name} at {target_path}.",
@@ -344,7 +356,7 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                 )
             )
 
-            def post_to_gdh_external_geometries(url: str, description: str) -> None:
+            def post_to_gdh_external_geometries(gdh_api_helper: GeodesignHub.GeodesignHubClient,url: str, description: str) -> None:
                 log_to_redis(
                     f"Posting data to GeodesignHub: {description}.",
                     _migrate_to_gdh_payload.session_id,
@@ -373,9 +385,6 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                 S3_CDN_ENDPOINT + "/" + target_path + "/" + original_file_name
             )
 
-            simplified_fgb_url: str = (
-                S3_CDN_ENDPOINT + "/" + target_path + "/" + simplified_file_name
-            )
             # Post original FGB
             log_to_redis(
                 "Posting original FGB to GeodesignHub.",
@@ -385,17 +394,6 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
             post_to_gdh_external_geometries(
                 url=original_fgb_url,
                 description="Imported from AGOL (Original)",
-            )
-
-            # Post simplified FGB
-            log_to_redis(
-                "Posting simplified FGB to GeodesignHub.",
-                _migrate_to_gdh_payload.session_id,
-                r,
-            )
-            post_to_gdh_external_geometries(
-                url=simplified_fgb_url,
-                description="Imported from AGOL (Simplified)",
             )
 
         log_to_redis(
