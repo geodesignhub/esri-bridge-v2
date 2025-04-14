@@ -21,6 +21,7 @@ As a pre-requisite to using this plugin, you must create a project with ESRI con
 Here are some screenshots showcasing the functionality of the plugin:
 
 
+
 ### Import data from AGOL
 
 ![import design](images/import-from-agol.jpg)
@@ -29,6 +30,12 @@ Here are some screenshots showcasing the functionality of the plugin:
 
 ### Export to Geoplanner / ArcGIS
 ![export design](images/export-to-agol.jpg)
+=======
+### Import data from ArcGIS Online
+Available for Project Administrators
+
+
+
 
 🌟 See Geodesignhub [community article](https://community.geodesignhub.com/t/exporting-your-design-to-arcgis-online-esri-systems/1430)
 
