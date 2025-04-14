@@ -21,12 +21,19 @@ As a pre-requisite to using this plugin, you must create a project with ESRI con
 Here are some screenshots showcasing the functionality of the plugin:
 
 
+
 ### Import data from AGOL
 
 ![import design](images/import-from-agol.jpg)
 
 ### Export to Geoplanner / ArcGIS
 ![export design](images/export-to-agol.jpg)
+=======
+### Import data from ArcGIS Online
+Available for Project Administrators
+
+
+
 
 ## Adding the plugin
 
