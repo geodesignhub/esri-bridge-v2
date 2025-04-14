@@ -1,0 +1,150 @@
+{% extends "layout.html" %}
+{% block headercss %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+
+{% endblock %}
+{% block body %}
+<div class="container">
+    <!-- Example row of columns -->
+    <br>
+    <div class="row">
+        <h6>
+            Migration Status
+            <small class="text-body-secondary">Monitor submission to AGOL system</small>
+            <br>
+            
+            <br>
+            <div class="row">
+                <div class="col-md-12">
+                
+                    <button class="btn btn-outline-info d-none" id="get_migration_status" type="button"
+                        onclick="migration_helper.get_import_migration_status()" class="btn btn-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Check status of the export">Query status
+                    </button>
+                    <p>&nbsp;</p>
+                </div>
+            </div>
+            <br>
+            <div class="col-md-12">
+                <div id="intial_state" class="alert {% if op %}alert-info{% else %}alert-warning {% endif %}" role="alert">
+                    {{message}}
+                </div>
+                <div id="latest_update" class="alert" role="alert">                    
+                </div>
+                <h6>Detailed Status</h6>
+
+                <div id="all_updates" class="info" role="alert">                    
+                </div>
+                
+            </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <small class="text-muted">If you dont see your diagram in a couple of minutes in Geodesignhub, use this id <code>{{ session_id }}</code> and contact <a href="https://community.geodesignhub.com">Geodesignhub Community</a>, also take a screenshot of the status messages above.</small>
+        </div>
+    </div>
+</div><!-- /container -->
+{% endblock %}
+
+{% block footer %}
+<script type="text/javascript">
+
+
+    function get_agol_processing_results(migration_status_url) {
+        fetch(migration_status_url)
+            .then((response) => {
+                return response.json();
+            })
+            .then((agol_processing_response) => {
+                // hide the intiial state container                
+                let intial_state_cont = document.getElementById('intial_state');
+                intial_state_cont.classList.add('d-none');
+
+                let status_ele = document.getElementById("latest_update");
+
+                let detailed_status_ele = document.getElementById("all_updates");
+                detailed_status_ele.classList.remove('d-none');
+                
+                status_ele.innerHTML = "";
+                detailed_status_ele.innerHTML = "";
+                if (agol_processing_response.status == 0) {
+                    
+                    let get_migration_status_cont = document.getElementById('get_migration_status');
+                    get_migration_status_cont.classList.add('d-none');
+                    status_ele.classList.add('alert-info');
+                }
+                else if (agol_processing_response.status == 1) {
+                            
+                    let get_migration_status_cont = document.getElementById('get_migration_status');
+                    get_migration_status_cont.classList.remove('d-none');
+
+                    status_ele.classList.remove('alert-info');
+                    status_ele.classList.add('alert-warning');
+                    let messages = agol_processing_response.messages || [];
+                    if (messages.length > 0) {
+                        let ul = document.createElement('ul');
+                        messages.forEach((msg) => {
+                            let li = document.createElement('li');
+                            li.textContent = msg;
+                            ul.appendChild(li);
+                        });
+                        status_ele.appendChild(ul);
+                    }
+                }
+                else if (agol_processing_response.status == 2) {
+
+                    status_ele.classList.remove('alert-info');
+                    status_ele.classList.remove('alert-warning');
+                    status_ele.classList.add('alert-success');
+                    status_ele.innerHTML = "The data has been successfully imported to Geodesignhub";
+
+                    let messages = agol_processing_response.messages || [];
+                    if (messages.length > 0) {
+                        let ul = document.createElement('ul');
+                        messages.slice().reverse().forEach((msg) => {
+                            let li = document.createElement('li');
+                            let codeElement = document.createElement('code');
+                            codeElement.textContent = msg;
+                            li.appendChild(codeElement);
+                            ul.appendChild(li);
+                        });
+                        detailed_status_ele.appendChild(ul);
+                    }
+                }
+            }).catch((error) => {
+                console.log(error)
+                let status_ele = document.getElementById("latest_update");
+                status_ele.classList.add('alert-error');
+                status_ele.innerHTML = "Failed to get results from the bridge";
+            });
+    }
+
+    let MigrationHelperFactory = function () {
+
+        let session_id = "{{session_id}}";
+        this.get_migration_status =function() {
+            
+            let migration_status_url = window.location.origin + '/get_agol_processing_result?session_id=' + session_id;
+            get_agol_processing_results(migration_status_url)
+
+        }
+        this.get_import_migration_status =function() {
+            
+            let migration_status_url = window.location.origin + '/get_gdh_import_processing_result?session_id=' + session_id;
+            get_agol_processing_results(migration_status_url)
+
+        }
+    }
+    let migration_helper = new MigrationHelperFactory();
+    setTimeout(
+            function() {
+                
+            // show get_design_shadows_control
+            let get_migration_status_cont = document.getElementById('get_migration_status');
+            get_migration_status_cont.classList.remove('d-none');
+            migration_helper.get_migration_status();            
+    }, 45000);
+    
+
+
+</script>
+{% endblock %}

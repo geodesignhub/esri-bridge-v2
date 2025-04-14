@@ -1,0 +1,128 @@
+{% extends "layout.html" %} {% from 'bootstrap5/form.html' import render_form %}
+{% from "_formhelpers.html" import render_field %} {% from
+'bootstrap5/form.html' import render_form_row %} {% block body %}
+<div class="container">
+  <!-- Example row of columns -->
+  <div class="row">
+    <div class="p-4"></div>
+    <div class="col-md-12">
+      <h3>
+        ArcGIS Online → Geodesignhub Data Transfer
+        <small class="text-muted">AGOL Data migration</small>
+      </h3>
+      <p>
+        Use this form to confirm that you want to migrate your ArcGIS online content to your Geodesignhub project. The selected data will appear as diagrams in your Geodesignhub project.
+      </p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="p-2"></div>
+    <h6>
+      Migration Status
+      <small class="text-body-secondary">Monitor submission to Geodesignhub</small>
+      <br /><br />
+      {% if import_template_data.message %}
+      <div class="mb-3">
+        <div
+          class="alert alert-{{import_template_data.message_type}}"
+          role="alert">
+          {{import_template_data.message}}
+        </div>
+      </div>
+      {% endif %}
+    </h6>
+  </div>
+
+  <div class="row">
+    <div class="p-2"></div>
+    <div class="col-md-12">
+      
+      <p class="lead"><i class="bi bi-info-circle-fill"></i> Read first</p>
+      <p>
+        Choose the data that you want to import to Geodesignhub, you can also choose if it is a project or policy once it is imported. Please see the <a href="https://community.geodesignhub.com/t/what-is-the-difference-between-project-and-policy-diagrams/48"target="_blank"
+          >community support</a> article to understand the difference between project and policy. Also,please review the <a href="https://community.geodesignhub.com/t/exporting-your-design-to-arcgis-online-esri-systems/1430/1">preparing your data for export</a> article in to prepare your data for Export and understand how the </p>
+      <br>
+      <div class="container text-center">
+        <div class="row">
+          <div class="col-md-6">
+            <h5 class="text-start">Choose data to import into your project</h5>
+          </div>
+          <div class="col-md-4 ms-auto">
+      
+            <div class="text-end dropdown">
+              <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Data type
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="updateQueryParameter('geopackage')">Geopackage</a></li>
+                
+              </ul>
+            </div></div>
+        </div>
+        
+      </div>
+
+      <!-- Start the form -->
+      <form  method="POST">
+
+        
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Migrate?</th>
+                <th scope="col">Data Title</th>
+                <th scope="col">Project or Policy</th>
+                <th scope="col">Destination Geodesignhub System</th>
+              </tr>
+            </thead>
+            <tbody>
+                {% for agol_entry_form in form.agol_objects %}
+                  <tr>
+                    <td>              
+                      <div class="form-check">
+                        <input type="checkbox" name="should_migrate_{{agol_entry_form.agol_id}}" class="form-check-input">
+
+                      <input type="hidden" name="title_{{agol_entry_form.agol_id}}" value="{{ agol_entry_form.name }}">
+                      </div>
+                      
+                    </td>
+                    <td>{{ agol_entry_form.name }}</td>
+                    <td>{{ agol_entry_form.project_or_policy }}</td>
+                    <td>
+                      {{ agol_entry_form.destination_gdh_system }}
+                    </td>
+                  </tr>
+                {% endfor %}
+            </tbody>
+          </table>
+
+          <input type="hidden" name="agol_token" value="{{ form.agol_token }}">
+          <input type="hidden" name="session_id" value="{{ form.session_id }}">
+          <input type="hidden" name="gdh_project_id" value="{{ form.gdh_project_id }}">
+          <input type="hidden" name="gdh_token" value="{{ form.gdh_token }}">
+          {{ form.csrf_token }}
+          <div class="mb-3 py-4">
+            <button type="submit" class="btn btn-primary">
+              {{ form.submit.label.text }}
+            </button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- /container -->{% endblock %} 
+ 
+{% block footer %} 
+<script type="text/javascript">
+  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+  const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+  function updateQueryParameter(fileType) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('fileType', fileType);
+    window.history.replaceState({}, '', url);
+    window.location.reload(); // Refresh the screen with updated query parameters
+  }
+</script>
+  
+{% endblock %}

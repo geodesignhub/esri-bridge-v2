@@ -7,7 +7,6 @@ from arcgis.map import Map
 
 
 def custom_asdict_factory(data):
-
     def convert_value(obj):
         if isinstance(obj, Enum):
             return obj.value
@@ -59,6 +58,14 @@ class GeodesignhubFeatureProperties:
 class VolumeInformation:
     min_height: float
     max_height: float
+
+
+@dataclass
+class ImportConfirmationPayload:
+    agol_token: str
+    message: str
+    message_type: MessageType
+    session_id: str
 
 
 @dataclass
@@ -208,7 +215,14 @@ class GeodesignhubProjectData:
 @dataclass
 class AGOLExportStatus:
     status: int
-    message: str
+    messages: list[str]
+    success_url: str
+
+
+@dataclass
+class AGOLImportStatus:
+    status: int
+    messages: list[str]
     success_url: str
 
 
@@ -334,10 +348,12 @@ class AGOLItemSchema:
             ],
         }
 
+
 @dataclass
 class AGOLWebMapSpatialExtent:
-    wkid:int
+    wkid: int
     latestWkid: int
+
 
 @dataclass
 class AGOLWebMapCombinedExtent:
@@ -346,3 +362,14 @@ class AGOLWebMapCombinedExtent:
     xmax: float
     ymax: float
     spatialReference: AGOLWebMapSpatialExtent
+
+
+@dataclass
+class ImporttoGDHItem:
+    agol_id: str
+    agol_title: str
+    agol_item_type: str
+    target_gdh_system: str
+    target_gdh_project_or_policy: str
+    target_gdh_project_id: str
+    gdh_api_token: str
