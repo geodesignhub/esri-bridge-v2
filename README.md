@@ -24,9 +24,13 @@ Here are some screenshots showcasing the functionality of the plugin:
 ### Import data from AGOL
 
 ![import design](images/import-from-agol.jpg)
+🌟 See Geodesignhub [community article](https://community.geodesignhub.com/t/import-data-from-arcgis-online-esri-systems-to-your-project/1437)
+
 
 ### Export to Geoplanner / ArcGIS
 ![export design](images/export-to-agol.jpg)
+
+🌟 See Geodesignhub [community article](https://community.geodesignhub.com/t/exporting-your-design-to-arcgis-online-esri-systems/1430)
 
 ## Adding the plugin
 
