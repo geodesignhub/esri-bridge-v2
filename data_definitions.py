@@ -63,7 +63,6 @@ class VolumeInformation:
 @dataclass
 class ImportConfirmationPayload:
     agol_token: str
-    agol_project_id: str
     message: str
     message_type: MessageType
     session_id: str
@@ -216,7 +215,7 @@ class GeodesignhubProjectData:
 @dataclass
 class AGOLExportStatus:
     status: int
-    messages:  list[str]
+    messages: list[str]
     success_url: str
 
 
@@ -225,6 +224,7 @@ class AGOLImportStatus:
     status: int
     messages: list[str]
     success_url: str
+
 
 @dataclass
 class AGOLSubmissionPayload:

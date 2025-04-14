@@ -248,7 +248,7 @@ def get_gdh_import_processing_result():
     try:
         messages = redis_instance.lrange(f"session_logs:{session_id}", 0, -1)
         all_messages = [message.decode("utf-8") for message in messages]
-        
+
         import_response = AGOLImportStatus(
             status=2,
             messages=all_messages,
@@ -542,8 +542,6 @@ def import_agol_data():
     my_geodesignhub_downloader = GeodesignhubDataDownloader(
         session_id=session_id,
         project_id=gdh_project_id,
-        synthesis_id=design_id,
-        cteam_id=design_team_id,
         apitoken=apitoken,
     )
 
@@ -625,7 +623,6 @@ def import_agol_data():
     message_type = MessageType.primary
     import_confirmation_payload = ImportConfirmationPayload(
         agol_token=agol_token,
-        agol_project_id=agol_project_id,
         message_type=message_type,
         message=confirmation_message,
         session_id=session_id,

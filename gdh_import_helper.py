@@ -394,6 +394,7 @@ def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
                 r,
             )
             post_to_gdh_external_geometries(
+                gdh_api_helper=gdh_api_helper,
                 url=original_fgb_url,
                 description="Imported from AGOL (Original)",
             )

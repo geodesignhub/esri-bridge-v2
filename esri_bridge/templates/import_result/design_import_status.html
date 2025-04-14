@@ -30,12 +30,16 @@
                 </div>
                 <div id="latest_update" class="alert" role="alert">                    
                 </div>
+                <h6>Detailed Status</h6>
+
+                <div id="all_updates" class="info" role="alert">                    
+                </div>
                 
             </div>
     </div>
     <div class="row">
         <div class="col-md-12">
-            <small class="text-muted">If you dont see your design in a couple of minutes in ArcGIS online, use this id <code>{{ session_id }}</code> and contact <a href="https://community.geodesignhub.com">Geodesignhub Community</a>.</small>
+            <small class="text-muted">If you dont see your diagram in a couple of minutes in Geodesignhub, use this id <code>{{ session_id }}</code> and contact <a href="https://community.geodesignhub.com">Geodesignhub Community</a>, also take a screenshot of the status messages above.</small>
         </div>
     </div>
 </div><!-- /container -->
@@ -51,19 +55,17 @@
                 return response.json();
             })
             .then((agol_processing_response) => {
-                // hide the intiial state container
-                console.log(agol_processing_response);
+                // hide the intiial state container                
                 let intial_state_cont = document.getElementById('intial_state');
                 intial_state_cont.classList.add('d-none');
 
                 let status_ele = document.getElementById("latest_update");
+
+                let detailed_status_ele = document.getElementById("all_updates");
+                detailed_status_ele.classList.remove('d-none');
                 
                 status_ele.innerHTML = "";
-                let span = document.createElement('span');
-                span.innerHTML = agol_processing_response.message;
-
-
-                status_ele.appendChild(span);
+                detailed_status_ele.innerHTML = "";
                 if (agol_processing_response.status == 0) {
                     
                     let get_migration_status_cont = document.getElementById('get_migration_status');
@@ -76,8 +78,8 @@
                     get_migration_status_cont.classList.remove('d-none');
 
                     status_ele.classList.remove('alert-info');
-                    status_ele.classList.add('alert-success');
-                    let messages = agol_processing_response.message || [];
+                    status_ele.classList.add('alert-warning');
+                    let messages = agol_processing_response.messages || [];
                     if (messages.length > 0) {
                         let ul = document.createElement('ul');
                         messages.forEach((msg) => {
@@ -89,23 +91,24 @@
                     }
                 }
                 else if (agol_processing_response.status == 2) {
-                 
-                    
-                    
 
                     status_ele.classList.remove('alert-info');
+                    status_ele.classList.remove('alert-warning');
                     status_ele.classList.add('alert-success');
-                    let messages = agol_processing_response.message || [];
+                    status_ele.innerHTML = "The data has been successfully imported to Geodesignhub";
+
+                    let messages = agol_processing_response.messages || [];
                     if (messages.length > 0) {
                         let ul = document.createElement('ul');
-                        messages.forEach((msg) => {
+                        messages.slice().reverse().forEach((msg) => {
                             let li = document.createElement('li');
-                            li.textContent = msg;
+                            let codeElement = document.createElement('code');
+                            codeElement.textContent = msg;
+                            li.appendChild(codeElement);
                             ul.appendChild(li);
                         });
-                        status_ele.appendChild(ul);
+                        detailed_status_ele.appendChild(ul);
                     }
-                    status_ele.classList.add('alert-info');
                 }
             }).catch((error) => {
                 console.log(error)
