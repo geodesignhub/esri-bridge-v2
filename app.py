@@ -264,7 +264,7 @@ def get_gdh_import_processing_result():
         )
 
     import_response = asdict(import_response)
-    print(import_response)
+    
     return Response(json.dumps(import_response), status=200, mimetype=MIMETYPE)
 
 
@@ -523,10 +523,7 @@ def import_agol_data():
     try:
         gdh_project_id = request.args.get("projectid")
         apitoken = request.args.get("apitoken")
-        design_team_id = request.args.get("cteamid")
-        design_id = request.args.get("synthesisid")
         agol_token = request.args.get("arcgisToken")
-        agol_project_id = request.args.get("gplProjectId")
         import_format = request.args.get("importFormat", "geopackage")
 
     except KeyError:
