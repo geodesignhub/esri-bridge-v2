@@ -373,3 +373,35 @@ class ImporttoGDHItem:
     target_gdh_project_or_policy: str
     target_gdh_project_id: str
     gdh_api_token: str
+
+
+@dataclass
+class ImporttoGDHFeatureService:
+    agol_id: str
+    agol_url: str
+    agol_item_title: str
+    agol_item_type: str
+    target_gdh_system: str
+    target_gdh_project_or_policy: str
+    target_gdh_project_id: str
+    gdh_api_token: str
+
+
+@dataclass
+class GeoPackageImportPayload:
+    gdh_project_id: str
+    gdh_api_token: str
+    agol_token: str
+    import_format: str
+    session_id: Optional[str] = None
+    items_to_import: Optional[List[str]] = None
+
+
+@dataclass
+class FeatureServiceImportPayload:
+    gdh_project_id: str
+    gdh_api_token: str
+    agol_token: str
+    import_format: str
+    session_id: Optional[str] = None
+    items_to_import: Optional[List[str]] = None

@@ -16,6 +16,9 @@ from data_definitions import (
     AllSystemDetails,
     ImportConfirmationPayload,
     ImporttoGDHItem,
+    FeatureServiceImportPayload,
+    GeoPackageImportPayload,
+    ImporttoGDHFeatureService,
 )
 from gdh_import_helper import ImporttoGDHPayload
 from notifications_helper import (
@@ -52,7 +55,7 @@ from wtforms import (
     FieldList,
     FormField,
 )
-from gdh_import_helper import process_gdh_import
+from gdh_import_helper import process_gdh_import, process_gdh_feature_service_import
 from wtforms.validators import InputRequired
 import logging
 from logging.config import dictConfig
@@ -230,6 +233,47 @@ def create_import_confirmation_form(
     return import_confirmation_form
 
 
+class FeatureServiceSelectionForm(FlaskForm):
+    feature_service_id = SelectField(
+        "Select Feature Service", coerce=str, validators=[InputRequired()]
+    )
+    agol_token = HiddenField()
+    gdh_project_id = HiddenField()
+    session_id = HiddenField()
+    gdh_api_token = HiddenField()
+    submit = SubmitField("Next")
+
+
+class FeatureLayerEntryForm(FlaskForm):
+    layer_url = HiddenField()
+    layer_id = HiddenField()
+    layer_name = StringField("Layer Name", render_kw={"readonly": True})
+    project_or_policy = SelectField(
+        "Project or Policy",
+        coerce=str,
+        validators=[InputRequired()],
+        choices=[("project", "Project"), ("policy", "Policy")],
+    )
+    destination_gdh_system = SelectField(
+        "Destination System",
+        coerce=int,
+        validators=[InputRequired()],
+        choices=[(0, "Select System")],
+    )
+
+    should_migrate = BooleanField("Import this layer?")
+
+
+class FeatureServiceLayerSelectionForm(FlaskForm):
+    agol_token = HiddenField()
+    gdh_project_id = HiddenField()
+    session_id = HiddenField()
+    gdh_api_token = HiddenField()
+    feature_service_id = HiddenField()
+    layers = FieldList(FormField(FeatureLayerEntryForm), min_entries=1)
+    submit = SubmitField("Import selected layers to Geodesignhub →")
+
+
 @app.route("/get_gdh_import_processing_result", methods=["GET"])
 def get_gdh_import_processing_result():
     """
@@ -264,7 +308,7 @@ def get_gdh_import_processing_result():
         )
 
     import_response = asdict(import_response)
-    
+
     return Response(json.dumps(import_response), status=200, mimetype=MIMETYPE)
 
 
@@ -502,59 +546,192 @@ def redirect_after_export():
     )
 
 
-@app.route("/import/", methods=["GET", "POST"])
-def import_agol_data():
-    """
-    Handles the import of data from ArcGIS Online (AGOL) based on the provided request parameters.
-    This function extracts necessary parameters from the request, validates the import confirmation form,
-    and either redirects to a confirmation page or renders the import template with the appropriate data.
-    Request Parameters:
-    - projectid: The ID of the project.
-    - apitoken: The API token for authentication.
-    - cteamid: The ID of the design team.
-    - synthesisid: The ID of the design.
-    - arcgisToken: The token for accessing ArcGIS Online.
-    - gplProjectId: The ID of the AGOL project.
-    Returns:
-        Response: A redirect response to the confirmation page if the form is valid, or a rendered template
-                  with the import confirmation form and data.
-    """
+def import_view_for_feature_service(
+    feature_service_import_payload: FeatureServiceImportPayload,
+):
+    my_agol_helper = ArcGISHelper(
+        agol_token=feature_service_import_payload.agol_token,
+    )
 
-    try:
-        gdh_project_id = request.args.get("projectid")
-        apitoken = request.args.get("apitoken")
-        agol_token = request.args.get("arcgisToken")
-        import_format = request.args.get("importFormat", "geopackage")
+    my_geodesignhub_downloader = GeodesignhubDataDownloader(
+        session_id=feature_service_import_payload.session_id,
+        project_id=feature_service_import_payload.gdh_project_id,
+        apitoken=feature_service_import_payload.gdh_api_token,
+    )
+    _gdh_systems_raw = my_geodesignhub_downloader.download_project_systems()
+    _gdh_systems = AllSystemDetails(systems=_gdh_systems_raw)
 
-    except KeyError:
-        error_msg = ErrorResponse(
-            status=0,
-            message="Could not parse Project ID, Diagram ID or API Token ID. One or more of these were not found in your JSON request.",
-            code=400,
+    # Step 2: Layer selection for the chosen Feature Service
+    feature_service_id = request.form["feature_service_id"]
+
+    layers = my_agol_helper.get_layers_for_feature_service(feature_service_id)
+    # Populate the layers fieldlist in the form
+    feature_service_layers_form = FeatureServiceLayerSelectionForm()
+    form_layer_entries = []
+    for layer in layers:
+        entry = FeatureLayerEntryForm()
+        entry.layer_url.data = layer.url
+
+        entry.layer_id.data = layer.properties.id
+        entry.layer_name.data = layer.properties.name
+        entry.project_or_policy.name = "project_or_policy_" + str(layer.properties.id)
+        entry.project_or_policy.choices = [("project", "Project"), ("policy", "Policy")]
+
+        entry.destination_gdh_system.name = "system_" + str(layer.properties.id)
+        entry.destination_gdh_system.choices = [
+            (
+                system.id,
+                system.name,
+            )
+            for system in _gdh_systems.systems
+        ]
+        form_layer_entries.append(entry)
+        # form.layers.append_entry(entry.data)
+    feature_service_layers_form.layers = form_layer_entries
+
+    feature_service_layers_form.agol_token.data = (
+        feature_service_import_payload.agol_token
+    )
+    feature_service_layers_form.gdh_project_id.data = (
+        feature_service_import_payload.gdh_project_id
+    )
+    feature_service_layers_form.session_id.data = (
+        feature_service_import_payload.session_id
+    )
+    feature_service_layers_form.gdh_api_token.data = (
+        feature_service_import_payload.gdh_api_token
+    )
+    feature_service_layers_form.feature_service_id.data = feature_service_id
+
+    confirmation_message = "Select layers you want to import from the Feature Service."
+    message_type = MessageType.primary
+    import_confirmation_payload = ImportConfirmationPayload(
+        agol_token=feature_service_import_payload.agol_token,
+        message_type=message_type,
+        message=confirmation_message,
+        session_id=feature_service_import_payload.session_id,
+    )
+
+    return render_template(
+        "import_feature_service_layers.html",
+        import_template_data=asdict(
+            import_confirmation_payload, dict_factory=custom_asdict_factory
+        ),
+        form=feature_service_layers_form,
+    )
+
+
+@app.route("/import-feature-service/", methods=["POST"])
+def process_feature_service_import():
+    import_format = "feature-service"
+    diagram_upload_form_data = request.form.to_dict()
+
+    agol_token = diagram_upload_form_data["agol_token"]
+    gdh_api_token = diagram_upload_form_data["gdh_api_token"]
+    existing_session_id = diagram_upload_form_data["session_id"]
+    gdh_project_id = diagram_upload_form_data["gdh_project_id"]
+
+    # Filter keys that start with 'should_migrate_' and are set to 'on'
+    filtered_items = {
+        key: value
+        for key, value in diagram_upload_form_data.items()
+        if key.startswith("should_migrate_") and value == "on"
+    }
+
+    # Extract the corresponding target system and project/policy for each filtered item
+    items_to_migrate = []
+
+    for key in filtered_items.keys():
+        item_id = key.split("should_migrate_")[1]
+        target_system = diagram_upload_form_data.get(f"system_{item_id}")
+        target_project_or_policy = diagram_upload_form_data.get(
+            f"project_or_policy_{item_id}"
         )
+        item_url = diagram_upload_form_data.get(f"url_{item_id}")
+        item_title = diagram_upload_form_data.get(f"diagram_name_{item_id}")
 
-        return Response(asdict(error_msg), status=400, mimetype=MIMETYPE)
+        # Replace the dictionary with the dataclass
+        items_to_migrate.append(
+            ImporttoGDHFeatureService(
+                agol_id=item_url,
+                agol_url=item_url,
+                agol_item_title=item_title,
+                agol_item_type=import_format,
+                target_gdh_system=target_system,
+                target_gdh_project_or_policy=target_project_or_policy,
+                target_gdh_project_id=gdh_project_id,
+                gdh_api_token=gdh_api_token,
+            )
+        )
+    _migrate_to_gdh_payload = ImporttoGDHPayload(
+        session_id=existing_session_id,
+        agol_token=agol_token,
+        items_to_migrate=items_to_migrate,
+        file_type=import_format,
+    )
+
+    gdh_submission_job = q.enqueue(
+        process_gdh_feature_service_import,
+        _migrate_to_gdh_payload,
+        on_success=notify_gdh_submission_success,
+        on_failure=notify_gdh_submission_failure,
+        job_id=existing_session_id,
+        job_timeout=3600,
+    )
+
+    return redirect(
+        url_for(
+            "redirect_after_import",
+            agol_token=agol_token,
+            session_id=existing_session_id,
+            status=1,
+            code=307,
+        )
+    )
+
+
+def import_view_for_geopackage(geopackage_import_payload: GeoPackageImportPayload):
+    """
+    Handles the import workflow for a GeoPackage into the application.
+    This view function orchestrates the process of importing data from a GeoPackage,
+    allowing users to select which items to migrate into the Geodesignhub project.
+    It initializes helper classes for ArcGIS Online and Geodesignhub data access,
+    prepares the import confirmation form, processes form submissions, and enqueues
+    the import job for asynchronous processing.
+    Args:
+        geopackage_import_payload (GeoPackageImportPayload):
+            The payload containing authentication tokens, session and project IDs,
+            import format, and other relevant information for the import process.
+    Returns:
+        Response:
+            - If the form is submitted and validated, redirects to a status page after enqueuing the import job.
+            - Otherwise, renders the import confirmation template for user selection.
+    Side Effects:
+        - Enqueues a background job for processing the import.
+        - Renders templates and handles HTTP redirects.
+    Raises:
+        None directly, but may propagate exceptions from form validation, data access, or job queuing.
+    """
 
     my_agol_helper = ArcGISHelper(
-        agol_token=agol_token,
+        agol_token=geopackage_import_payload.agol_token,
     )
-    session_id = uuid.uuid4()
     my_geodesignhub_downloader = GeodesignhubDataDownloader(
-        session_id=session_id,
-        project_id=gdh_project_id,
-        apitoken=apitoken,
+        session_id=geopackage_import_payload.session_id,
+        project_id=geopackage_import_payload.gdh_project_id,
+        apitoken=geopackage_import_payload.gdh_api_token,
     )
 
     _gdh_systems_raw = my_geodesignhub_downloader.download_project_systems()
     _gdh_systems = AllSystemDetails(systems=_gdh_systems_raw)
 
     import_confirmation_form = create_import_confirmation_form(
-        gdh_project_id=gdh_project_id,
-        agol_token=agol_token,
-        session_id=session_id,
+        gdh_project_id=geopackage_import_payload.gdh_project_id,
+        agol_token=geopackage_import_payload.agol_token,
+        session_id=geopackage_import_payload.session_id,
         _gdh_systems=_gdh_systems,
-        import_format=import_format,
-        gdh_api_token=apitoken,
+        import_format=geopackage_import_payload.import_format,
+        gdh_api_token=geopackage_import_payload.gdh_api_token,
         my_agol_helper=my_agol_helper,
     )
     if import_confirmation_form.validate_on_submit():
@@ -586,7 +763,7 @@ def import_agol_data():
                 ImporttoGDHItem(
                     agol_id=item_id,
                     agol_title=item_title,
-                    agol_item_type=import_format,
+                    agol_item_type=geopackage_import_payload.import_format,
                     target_gdh_system=target_system,
                     target_gdh_project_or_policy=target_project_or_policy,
                     target_gdh_project_id=gdh_project_id,
@@ -594,10 +771,10 @@ def import_agol_data():
                 )
             )
         _migrate_to_gdh_payload = ImporttoGDHPayload(
-            session_id=existing_session_id,
-            agol_token=agol_token,
+            session_id=geopackage_import_payload.session_id,
+            agol_token=geopackage_import_payload.agol_token,
             items_to_migrate=items_to_migrate,
-            file_type=import_format,
+            file_type=geopackage_import_payload.import_format,
         )
 
         gdh_submission_job = q.enqueue(
@@ -622,10 +799,10 @@ def import_agol_data():
     confirmation_message = "Select data you want to import.."
     message_type = MessageType.primary
     import_confirmation_payload = ImportConfirmationPayload(
-        agol_token=agol_token,
+        agol_token=geopackage_import_payload.agol_token,
         message_type=message_type,
         message=confirmation_message,
-        session_id=session_id,
+        session_id=geopackage_import_payload.session_id,
     )
 
     return render_template(
@@ -635,6 +812,103 @@ def import_agol_data():
         ),
         form=import_confirmation_form,
     )
+
+
+@app.route("/import/", methods=["GET", "POST"])
+def import_agol_data():
+    """
+    Handles the import of data from ArcGIS Online (AGOL) based on the provided request parameters.
+    This function extracts necessary parameters from the request, validates the import confirmation form,
+    and either redirects to a confirmation page or renders the import template with the appropriate data.
+    Request Parameters:
+    - projectid: The ID of the project.
+    - apitoken: The API token for authentication.
+    - cteamid: The ID of the design team.
+    - synthesisid: The ID of the design.
+    - arcgisToken: The token for accessing ArcGIS Online.
+    - gplProjectId: The ID of the AGOL project.
+    Returns:
+        Response: A redirect response to the confirmation page if the form is valid, or a rendered template
+                  with the import confirmation form and data.
+    """
+
+    try:
+        gdh_project_id = request.args.get("projectid")
+        apitoken = request.args.get("apitoken")
+        agol_token = request.args.get("arcgisToken")
+        import_format = request.args.get("fileType", "geopackage")
+
+    except KeyError:
+        error_msg = ErrorResponse(
+            status=0,
+            message="Could not parse Project ID, Diagram ID or API Token ID. One or more of these were not found in your JSON request.",
+            code=400,
+        )
+
+        return Response(asdict(error_msg), status=400, mimetype=MIMETYPE)
+
+    session_id = uuid.uuid4()
+    if import_format == "geopackage":
+        geopackage_import_payload = GeoPackageImportPayload(
+            gdh_project_id=gdh_project_id,
+            agol_token=agol_token,
+            session_id=session_id,
+            gdh_api_token=apitoken,
+            import_format=import_format,
+        )
+        return import_view_for_geopackage(geopackage_import_payload)
+    elif import_format == "feature-service":
+        feature_service_import_payload = FeatureServiceImportPayload(
+            gdh_project_id=gdh_project_id,
+            agol_token=agol_token,
+            session_id=session_id,
+            gdh_api_token=apitoken,
+            import_format=import_format,
+        )
+        # Step 1: Feature Service selection
+        if request.method == "GET" or "feature_service_id" not in request.form:
+            my_agol_helper = ArcGISHelper(
+                agol_token=feature_service_import_payload.agol_token,
+            )
+
+            # Get available feature services from AGOL
+            feature_services = my_agol_helper.get_ok_for_migration_items(
+                data_format=feature_service_import_payload.import_format
+            )
+            feature_service_choices = [
+                (fs["id"], fs["title"]) for fs in feature_services
+            ]
+            feature_service_selection_form = FeatureServiceSelectionForm()
+            feature_service_selection_form.feature_service_id.choices = (
+                feature_service_choices
+            )
+            feature_service_selection_form.agol_token.data = (
+                feature_service_import_payload.agol_token
+            )
+            feature_service_selection_form.gdh_project_id.data = (
+                feature_service_import_payload.gdh_project_id
+            )
+            feature_service_selection_form.session_id.data = (
+                feature_service_import_payload.session_id
+            )
+            feature_service_selection_form.gdh_api_token.data = (
+                feature_service_import_payload.gdh_api_token
+            )
+
+            return render_template(
+                "import_feature_service_select.html",
+                form=feature_service_selection_form,
+            )
+        else:
+            return import_view_for_feature_service(feature_service_import_payload)
+
+    invalid_filetype_error = ErrorResponse(
+        status=0,
+        message="At the moment only Geopackage and Feature Layer import is supported",
+        code=400,
+    )
+
+    return Response(asdict(invalid_filetype_error), status=400, mimetype=MIMETYPE)
 
 
 @app.route("/import_result/", methods=["GET"])

@@ -149,11 +149,24 @@ class ArcGISHelper:
     def get_gis(self) -> GIS:
         return self.gis
 
+    def get_layers_for_feature_service(self, item_id: str) -> list:
+        """Get all layers for a feature service"""
+        item = self.gis.content.get(item_id)
+        if item is None:
+            raise ValueError(f"Item with ID {item_id} not found.")
+        if item.type != "Feature Service":
+            raise ValueError(f"Item with ID {item_id} is not a Feature Service.")
+        return item.layers
+
     def get_ok_for_migration_items(self, data_format: str):
         """Get all items that are ok for migration from AGOL"""
         owner = self.gis.users.me.username
         # Define a lookup for data_format
-        data_format_lookup = {"geojson": "GeoJSON", "geopackage": "GeoPackage"}
+        data_format_lookup = {
+            "geojson": "GeoJSON",
+            "geopackage": "GeoPackage",
+            "feature-service": "Feature Service",
+        }
 
         # Validate and get the format from the lookup
         if data_format not in data_format_lookup:

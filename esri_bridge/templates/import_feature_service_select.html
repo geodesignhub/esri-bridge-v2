@@ -1,0 +1,84 @@
+{% extends "layout.html" %} {% from 'bootstrap5/form.html' import render_form %}
+{% from "_formhelpers.html" import render_field %} {% from
+'bootstrap5/form.html' import render_form_row %} {% block body %}
+<div class="container">
+  <!-- Example row of columns -->
+  <div class="row">
+    <div class="p-4"></div>
+    <div class="col-md-12">
+      <h3>
+        ArcGIS Online → Geodesignhub Data Transfer
+        <small class="text-muted">AGOL Data migration</small>
+      </h3>
+      <p>
+        Use this form to confirm that you want to migrate your ArcGIS online content to your Geodesignhub project. The selected data will appear as diagrams in your Geodesignhub project.
+      </p>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="p-2"></div>
+    <div class="col-md-12">
+      
+      <p class="lead"><i class="bi bi-info-circle-fill"></i> Read first</p>
+      <p>
+        Choose the data that you want to import to Geodesignhub, you can also choose if it is a project or policy once it is imported. Please see the <a href="https://community.geodesignhub.com/t/what-is-the-difference-between-project-and-policy-diagrams/48"target="_blank"
+          >community support</a> article to understand the difference between project and policy. You will be asked to choose individual layers within it and the target Geodesignhub systems in the next step. Also,please review the <a href="https://community.geodesignhub.com/t/exporting-your-design-to-arcgis-online-esri-systems/1430/1">preparing your data for export</a> article in to prepare your data for Export and understand how the import functionality works.</p>
+      <br>
+      <div class="container text-center">
+        <div class="row">
+            <div class="col-md-6">
+              <h5 class="text-start">Choose feature layer to import into your project</h5>
+            </div>
+            <div class="col-md-4 ms-auto">      
+                <div class="text-end dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Data type
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="updateQueryParameter('geopackage')">Geopackage</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="updateQueryParameter('feature-service')">Feature Service</a></li>
+                    
+                </ul>
+                </div>
+            </div>
+        </div>        
+      </div>
+    <div class="row">
+        <div class="col-md-6  mt-4">
+            <form  method="POST">                     
+                
+                {{ form.hidden_tag() }}
+                {% if not form.feature_service_id.choices %}<i>There are no Feature Layers available for export</i>
+                {%else %}
+                  {{ form.feature_service_id }}            
+                {% endif %}
+                <div class="mb-3 mt-4">
+                    <button type="submit" {% if not form.feature_service_id.choices %}disabled{% endif %} class="btn btn-primary">
+                    {{ form.submit.label.text }}
+                    </button>
+                </div>
+            </form>
+            </div>
+            <div class="col-md-6"></div>
+        </div>
+    </div>
+  </div>
+</div>
+<!-- /container -->{% endblock %} 
+ 
+{% block footer %} 
+
+<script type="text/javascript">
+  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+  const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+  function updateQueryParameter(fileType) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('fileType', fileType);
+    window.history.replaceState({}, '', url);
+    window.location.reload(); // Refresh the screen with updated query parameters
+  }
+</script>
+  
+{% endblock %}

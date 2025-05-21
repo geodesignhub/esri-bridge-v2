@@ -92,6 +92,53 @@ def process_geopackage_layers(
     return all_gdf
 
 
+def process_gdh_feature_service_import(
+    _migrate_to_gdh_payload: ImporttoGDHPayload,
+) -> None:
+    r = get_redis()
+    log_to_redis(
+        "Starting GDH feature service import process.",
+        _migrate_to_gdh_payload.session_id,
+        r,
+    )
+
+    for item in _migrate_to_gdh_payload.items_to_migrate:
+        log_to_redis(
+            f"Submitting item {item.agol_id} to GeodesignHub via API.",
+            _migrate_to_gdh_payload.session_id,
+            r,
+        )
+        gdh_api_helper = GeodesignHub.GeodesignHubClient(
+            url=config.external_api_settings["GDH_SERVICE_URL"],
+            project_id=item.target_gdh_project_id,
+            token=item.gdh_api_token,
+        )
+        payload = {
+            "url": item.agol_url,
+            "layer_type": "esri-org-featurelayer",
+            "description": item.agol_item_title,
+            "featuretype": "polygon",
+            "fundingtype": "pp",
+            "additional_metadata": {"agol_item_id": item.agol_id},
+        }
+
+        try:
+            response = gdh_api_helper.post_as_diagram_with_external_geometries(
+                **payload
+            )
+            log_to_redis(
+                f"Submitted item {item.agol_id} to GeodesignHub. Response: {response.text}",
+                _migrate_to_gdh_payload.session_id,
+                r,
+            )
+        except Exception as e:
+            log_to_redis(
+                f"Error submitting item {item.agol_id} to GeodesignHub: {e}",
+                _migrate_to_gdh_payload.session_id,
+                r,
+            )
+
+
 def process_gdh_import(_migrate_to_gdh_payload: ImporttoGDHPayload) -> None:
     """
     Handles the migration of items from ArcGIS Online to Geodesignhub.
