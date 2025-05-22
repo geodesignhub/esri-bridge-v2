@@ -568,7 +568,8 @@ def import_view_for_feature_service(
     # Populate the layers fieldlist in the form
     feature_service_layers_form = FeatureServiceLayerSelectionForm()
     form_layer_entries = []
-    for layer in layers:
+    # Populate the FeatureLayerEntryForm for each layer in the selected Feature Service
+    for layer in layers[:100]:
         entry = FeatureLayerEntryForm()
         entry.layer_url.data = layer.url
 
@@ -586,7 +587,6 @@ def import_view_for_feature_service(
             for system in _gdh_systems.systems
         ]
         form_layer_entries.append(entry)
-        # form.layers.append_entry(entry.data)
     feature_service_layers_form.layers = form_layer_entries
 
     feature_service_layers_form.agol_token.data = (
