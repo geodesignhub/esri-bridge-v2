@@ -113,18 +113,19 @@ def process_gdh_feature_service_import(
             project_id=item.target_gdh_project_id,
             token=item.gdh_api_token,
         )
-        payload = {
-            "url": item.agol_url,
-            "layer_type": "esri-org-featurelayer",
-            "description": item.agol_item_title,
-            "featuretype": "polygon",
-            "fundingtype": "pp",
-            "additional_metadata": {"agol_item_id": item.agol_id},
-        }
 
         try:
             response = gdh_api_helper.post_as_diagram_with_external_geometries(
-                **payload
+                url=item.agol_url,
+                layer_type="esri-org-featurelayer",
+                projectorpolicy=item.target_gdh_project_or_policy,
+                featuretype="polygon",
+                description=item.agol_item_title,
+                sysid=item.target_gdh_system,
+                fundingtype="pp",
+                additional_metadata={"agol_item_id": item.agol_id},
+                cost=0,
+                costtype="t",
             )
             log_to_redis(
                 f"Submitted item {item.agol_id} to GeodesignHub. Response: {response.text}",
