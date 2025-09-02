@@ -55,11 +55,11 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
 
     if submission_status_details.status == 0:
         agol_export_status.status = 0
-        agol_export_status.message = "A design with the same ID already exists in your profile in ArcGIS Online, you must delete that first in ArcGIS Online and try the migration again."
+        agol_export_status.messages.append("A design with the same ID already exists in your profile in ArcGIS Online, you must delete that first in ArcGIS Online and try the migration again.")
     else:
         agol_export_status.status = 1
         agol_export_status.success_url = submission_status_details.url
-        agol_export_status.message = (
+        agol_export_status.messages.append(
             "Successfully created Feature Layer on ArcGIS Online"
         )
     logger.info(
