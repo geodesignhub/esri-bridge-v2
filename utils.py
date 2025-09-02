@@ -46,7 +46,7 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
     my_arc_gis_helper.create_folder(
         project_title=agol_submission_payload.gdh_project_details.project_title
     )
-    agol_export_status = AGOLExportStatus(status=0, message="", success_url="")
+    agol_export_status = AGOLExportStatus(status=0, messages=[""], success_url="")
 
     submission_status_details = my_arc_gis_helper.export_design_json_to_agol(
         design_data=agol_submission_payload.design_data,
