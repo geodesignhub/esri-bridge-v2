@@ -145,6 +145,7 @@ class ArcGISHelper:
     def __init__(self, agol_token: str):
         self.agol_token = agol_token
         self.gis = self.create_gis_object()
+        self.folder = None
 
     def get_gis(self) -> GIS:
         return self.gis
@@ -217,13 +218,10 @@ class ArcGISHelper:
         folders_obj = cm.folders
         folder_name = "Data from Geodesignhub for " + project_title
         item_folder = folders_obj.get(folder=folder_name)
-        if item_folder:
-            return item_folder
-        else:
+        if not item_folder:
             me = self.gis.users.me
-            folder = folders_obj.create(folder_name, owner=me)
-
-            return folder
+            item_folder = folders_obj.create(folder_name, owner=me)
+        self.folder = item_folder
 
     def check_if_tags_exist(self, project_id: str, gis: GIS) -> bool:
         object_already_exists = False
@@ -544,24 +542,7 @@ class ArcGISHelper:
         geojson_add_job = self.folder.add(
             item_properties=asdict(agol_item_details), file=temp_geojson_path
         )
-
-        # Note: This code is not functioning as expected. The 'tag_codes' field is not being correctly set to 'esriFieldTypeString'.
-        # For now, we set the field to a string by adding a prefix value and then removing the prefix, avoiding ESRI's verbose JSON payloads
-
-        # publish_parameters = {
-        #     "name": f"{_gdh_design_details.design_name}_{design_id}",
-        #     "layerInfo": {
-        #         "fields": [
-        #             {
-        #                 "name": "tag_codes",
-        #                 "type": "esriFieldTypeString",
-        #                 "alias": "tag_codes",
-        #                 "length": 255,
-        #             }
-        #         ]
-        #     }
-        # }
-
+        
         if geojson_add_job.done():
             geojson_item = geojson_add_job.result()
             feature_layer_published = False
