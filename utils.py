@@ -274,13 +274,15 @@ class ArcGISHelper:
             temp_csv_file = tempfile.NamedTemporaryFile(mode="w", delete=False)
             tags_df.to_csv(temp_csv_file.name, encoding="utf-8", index=False)
             logger.info("Uploading tags to AGOL...")
-            csv_item_add_job = self.folder.add(
+            csv_item = self.folder.add(
                 item_properties=asdict(agol_item_details), file=temp_csv_file.name
-            )
+            ).result()
 
-            if csv_item_add_job.done():
-                csv_item = csv_item_add_job.result()
+            if csv_item:
                 published_item = csv_item.publish()
+            else:
+                logger.info("Failed to upload tags to AGOL.")
+                logger.info(csv_item)
             logger.info("Tags uploaded successfully...")
             os.unlink(temp_csv_file.name)
             temp_csv_file.delete = True
@@ -539,12 +541,11 @@ class ArcGISHelper:
             temp_geojson_path = output.name
 
         # Add the item
-        geojson_add_job = self.folder.add(
+        geojson_item = self.folder.add(
             item_properties=asdict(agol_item_details), file=temp_geojson_path
-        )
+        ).result()
         
-        if geojson_add_job.done():
-            geojson_item = geojson_add_job.result()
+        if geojson_item:
             feature_layer_published = False
             try:
                 feature_layer_item = geojson_item.publish()

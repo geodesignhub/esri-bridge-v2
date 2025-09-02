@@ -323,13 +323,13 @@ def get_agol_processing_result():
         agol_status = json.loads(s)
     else:
         agol_export_status = AGOLExportStatus(
-            status=1,
+            status=2,
             messages=[
                 "Import from ArcGIS Online is still in progress, please check back afer a few minutes"
             ],
             success_url="",
         )
-        agol_status = asdict(agol_export_status)
+        agol_status = asdict(agol_export_status)    
     return Response(json.dumps(agol_status), status=200, mimetype=MIMETYPE)
 
 
@@ -965,4 +965,5 @@ def set_language(language=None):
 if __name__ == "__main__":
     app.debug = os.environ.get("IS_DEBUG", False)
     port = int(os.environ.get("PORT", 5001))
+    app.logger.setLevel(logging.INFO)
     app.run(port=port)

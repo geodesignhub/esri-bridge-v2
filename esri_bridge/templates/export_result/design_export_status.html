@@ -30,6 +30,7 @@
                 </div>
                 <div id="latest_update" class="alert" role="alert">                    
                 </div>
+                <div id="esri_url"></div>
                 
             </div>
     </div>
@@ -56,11 +57,18 @@
                 intial_state_cont.classList.add('d-none');
 
                 let status_ele = document.getElementById("latest_update");
-                
+                            
                 status_ele.innerHTML = "";
                 let span = document.createElement('span');
-                span.innerHTML = agol_processing_response.message;
-
+                let ul = document.createElement('ul');
+                agol_processing_response.messages.forEach(function(msg) {
+                    if (msg && msg.trim() !== "") {
+                        let li = document.createElement('li');
+                        li.textContent = msg;
+                        ul.appendChild(li);
+                    }                    
+                });  
+                span.appendChild(ul);
                 status_ele.appendChild(span);
                 if (agol_processing_response.status == 0) {
                     
@@ -69,20 +77,23 @@
                     status_ele.classList.add('alert-info');
                 }
                 else if (agol_processing_response.status == 1) {
+                    // processed
                             
                     let get_migration_status_cont = document.getElementById('get_migration_status');
-                    get_migration_status_cont.classList.add('d-none');
-
+                    get_migration_status_cont.classList.add('d-none');  
                     status_ele.classList.remove('alert-info');
                     status_ele.classList.add('alert-success');
+                    let esri_url_cont = document.getElementById('esri_url');
                     let a = document.createElement('a');
                     let nbsp = document.createTextNode("\u00A0");
                     a.href = agol_processing_response.success_url;
-                    a.innerHTML = "see the layer on ArcGIS ↗"
+                    a.innerHTML = "See the layer on ArcGIS online ↗"
                     a.target = "_blank"
-                    status_ele.appendChild(span);
-                    status_ele.appendChild(nbsp);
-                    status_ele.appendChild(a);
+                    
+                    
+                    esri_url_cont.appendChild(a);
+
+                   
                 }
                 else if (agol_processing_response.status == 2) {
                  
