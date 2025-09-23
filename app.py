@@ -549,6 +549,22 @@ def redirect_after_export():
 def import_view_for_feature_service(
     feature_service_import_payload: FeatureServiceImportPayload,
 ):
+    """
+    Handles the import view for selecting layers from an ArcGIS Feature Service to be imported into a Geodesignhub project.
+    This function performs the following steps:
+    1. Initializes helpers for ArcGIS Online and Geodesignhub data access using the provided payload.
+    2. Downloads and prepares the list of systems from the specified Geodesignhub project.
+    3. Retrieves available layers from the selected ArcGIS Feature Service.
+    4. Populates a form with entries for each layer, allowing the user to select the destination system and specify if the layer represents a project or policy.
+    5. Prepares and returns the rendered template for user confirmation and further selection.
+    Args:
+        feature_service_import_payload (FeatureServiceImportPayload): 
+            An object containing authentication tokens and identifiers required for accessing ArcGIS Online and Geodesignhub resources.
+    Returns:
+        flask.Response: 
+            A rendered HTML template ('import_feature_service_layers.html') with the populated form and confirmation message for the user to select layers to import.
+    """
+    
     my_agol_helper = ArcGISHelper(
         agol_token=feature_service_import_payload.agol_token,
     )
