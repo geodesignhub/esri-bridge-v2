@@ -123,7 +123,7 @@ class ExportConfirmationForm(FlaskForm):
     ExportConfirmationForm is a FlaskForm used to handle the export confirmation process.
     Attributes:
         agol_token (HiddenField): A hidden field to store the ArcGIS Online token.
-        agol_project_id (HiddenField): A hidden field to store the ArcGIS Online project ID.
+
         session_id (HiddenField): A hidden field to store the session ID.
         webmap (BooleanField): A boolean field to indicate whether to include the webmap in the export.
         storymap (BooleanField): A boolean field to indicate whether to include the storymap in the export.
@@ -131,7 +131,7 @@ class ExportConfirmationForm(FlaskForm):
     """
 
     agol_token = HiddenField()
-    agol_project_id = HiddenField()
+
     session_id = HiddenField()
     webmap = BooleanField("Include Webmap")
     storymap = BooleanField("Include Storymap")
@@ -329,7 +329,7 @@ def get_agol_processing_result():
             ],
             success_url="",
         )
-        agol_status = asdict(agol_export_status)    
+        agol_status = asdict(agol_export_status)
     return Response(json.dumps(agol_status), status=200, mimetype=MIMETYPE)
 
 
@@ -358,7 +358,6 @@ def export_design():
         design_team_id = request.args.get("cteamid")
         design_id = request.args.get("synthesisid")
         agol_token = request.args.get("arcgisToken")
-        agol_project_id = request.args.get("gplProjectId")
 
     except KeyError:
         error_msg = ErrorResponse(
@@ -373,7 +372,6 @@ def export_design():
     export_confirmation_form = ExportConfirmationForm(
         project_id=project_id,
         agol_token=agol_token,
-        agol_project_id=agol_project_id,
         session_id=session_id,
     )
 
@@ -390,7 +388,7 @@ def export_design():
     if export_confirmation_form.validate_on_submit():
         diagram_upload_form_data = export_confirmation_form.data
         agol_token = diagram_upload_form_data["agol_token"]
-        agol_project_id = diagram_upload_form_data["agol_project_id"]
+
         existing_session_id = diagram_upload_form_data["session_id"]
         existing_session_key = existing_session_id + "_design"
 
@@ -428,7 +426,6 @@ def export_design():
             design_data=agol_design_submission,
             tags_data=project_tags_parsed,
             agol_token=agol_token,
-            agol_project_id=agol_project_id,
             session_id=existing_session_id,
             gdh_systems_information=_gdh_systems,
             gdh_project_details=_gdh_project_details,
@@ -450,7 +447,6 @@ def export_design():
                 "redirect_after_export",
                 agol_token=agol_token,
                 session_id=existing_session_id,
-                agol_project_id=agol_project_id,
                 status=1,
                 code=307,
             )
@@ -497,7 +493,6 @@ def export_design():
     message_type = MessageType.primary
     export_confirmation_payload = ExportConfirmationPayload(
         agol_token=agol_token,
-        agol_project_id=agol_project_id,
         message_type=message_type,
         message=confirmation_message,
         geodesignhub_design_feature_count=_num_features,
@@ -518,7 +513,7 @@ def export_design():
 def redirect_after_export():
     """
     Handles the redirection after an export operation to ArcGIS Online.
-    This function retrieves the status, agol_token, session_id, and agol_project_id
+    This function retrieves the status, agol_token, and session_id
     from the request arguments, constructs a message based on the status, and renders
     the 'design_export_status.html' template with the provided information.
     Args:
@@ -530,7 +525,6 @@ def redirect_after_export():
     status = int(request.args.get("status"))
     agol_token = request.args["agol_token"]
     session_id = request.args["session_id"]
-    agol_project_id = request.args["agol_project_id"]
     message = (
         "Your design is being exported to ArcGIS Online, you can close this window and check ArcGIS.com after a few minutes..."
         if status
@@ -542,7 +536,6 @@ def redirect_after_export():
         message=message,
         agol_token=agol_token,
         session_id=session_id,
-        agol_project_id=agol_project_id,
     )
 
 
@@ -558,13 +551,13 @@ def import_view_for_feature_service(
     4. Populates a form with entries for each layer, allowing the user to select the destination system and specify if the layer represents a project or policy.
     5. Prepares and returns the rendered template for user confirmation and further selection.
     Args:
-        feature_service_import_payload (FeatureServiceImportPayload): 
+        feature_service_import_payload (FeatureServiceImportPayload):
             An object containing authentication tokens and identifiers required for accessing ArcGIS Online and Geodesignhub resources.
     Returns:
-        flask.Response: 
+        flask.Response:
             A rendered HTML template ('import_feature_service_layers.html') with the populated form and confirmation message for the user to select layers to import.
     """
-    
+
     my_agol_helper = ArcGISHelper(
         agol_token=feature_service_import_payload.agol_token,
     )

@@ -71,7 +71,7 @@ class ImportConfirmationPayload:
 @dataclass
 class ExportConfirmationPayload:
     agol_token: str
-    agol_project_id: str
+    
     message: str
     message_type: MessageType
     geodesignhub_design_feature_count: int
@@ -231,7 +231,7 @@ class AGOLSubmissionPayload:
     design_data: GeodesignhubDataStorage
     tags_data: GeodesignhubProjectTags
     agol_token: str
-    agol_project_id: str
+    
     session_id: str
     gdh_systems_information: AllSystemDetails
     gdh_project_details: GeodesignhubProjectDetails
