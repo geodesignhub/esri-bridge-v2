@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     redis-server \
     curl \
+    libexpat1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
