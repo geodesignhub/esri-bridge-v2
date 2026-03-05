@@ -19,7 +19,7 @@ ENV PATH="/root/.local/bin:$PATH"
 
 # Copy project definition and install dependencies
 COPY pyproject.toml uv.lock /app/
-RUN uv sync --no-dev --frozen
+RUN uv sync --no-dev --frozen --no-install-project
 
 # Copy application code and the start script
 COPY . .
