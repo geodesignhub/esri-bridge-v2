@@ -44,74 +44,83 @@ def publish_design_to_agol(agol_submission_payload: AGOLSubmissionPayload):
     agol_token = agol_submission_payload.agol_token
     my_arc_gis_helper = ArcGISHelper(agol_token=agol_token)
     agol_export_status = AGOLExportStatus(status=0, messages=[""], success_url="")
-    folder_created = my_arc_gis_helper.create_folder(
-        project_title=agol_submission_payload.gdh_project_details.project_title
-    )
-    
     submission_processing_result_key = "{session_id}_status".format(
-            session_id=agol_submission_payload.session_id
-        )
-    if not folder_created:
+        session_id=agol_submission_payload.session_id
+    )
 
-
-        agol_export_status.messages.append(
-            "Error creating folder in AGOL, aborting export, this happens becuase your ArcGIS token might have expired, please relogin via Geodesignhub interface and try again..."
-        )
-        logger.info("Error creating folder in AGOL, aborting export...")
-        
-    else:
-        submission_status_details = my_arc_gis_helper.export_design_json_to_agol(
-            design_data=agol_submission_payload.design_data,
-            gdh_systems_information=agol_submission_payload.gdh_systems_information,
+    try:
+        folder_created = my_arc_gis_helper.create_folder(
+            project_title=agol_submission_payload.gdh_project_details.project_title
         )
 
-        if submission_status_details.status == 0:
-            agol_export_status.status = 0
+        if not folder_created:
             agol_export_status.messages.append(
-                "A design with the same ID already exists in your profile in ArcGIS Online, you must delete that first in ArcGIS Online and try the migration again."
+                "Error creating folder in AGOL, aborting export, this happens becuase your ArcGIS token might have expired, please relogin via Geodesignhub interface and try again..."
             )
+            logger.info("Error creating folder in AGOL, aborting export...")
+
         else:
-            agol_export_status.status = 1
-            agol_export_status.success_url = submission_status_details.url
-            agol_export_status.messages.append(
-                "Successfully created Feature Layer on ArcGIS Online"
-            )
-        logger.info(
-            "Found {num_tags} tags in Geodesignhub".format(
-                num_tags=len(agol_submission_payload.tags_data.tags)
-            )
-        )
-        if len(agol_submission_payload.tags_data.tags):
-            my_arc_gis_helper.export_project_tags_to_agol(
-                tags_data=agol_submission_payload.tags_data,
-                project_id=agol_submission_payload.design_data.gdh_design_details.project_id,
+            submission_status_details = my_arc_gis_helper.export_design_json_to_agol(
+                design_data=agol_submission_payload.design_data,
+                gdh_systems_information=agol_submission_payload.gdh_systems_information,
             )
 
-        # Create a web map and publish it
-        if submission_status_details.status:
-            # Sleep for 10 seconds to allow for layers to be updated
-            # logging.info("Sleeping for 15 seconds to allow for publishing...")
-            # time.sleep(15)
-            if agol_submission_payload.include_webmap:
-                logger.info("Webmap included in the export")
-                my_webmap_item = my_arc_gis_helper.publish_feature_layer_as_webmap(
-                    feature_layer_item=submission_status_details.item,
-                    design_data=agol_submission_payload.design_data,
-                    gdh_systems_information=agol_submission_payload.gdh_systems_information,
+            if submission_status_details.status == 0:
+                agol_export_status.status = 0
+                agol_export_status.messages.append(
+                    "A design with the same ID already exists in your profile in ArcGIS Online, you must delete that first in ArcGIS Online and try the migration again."
                 )
-            if agol_submission_payload.include_storymap:
-                logger.info("Storymap included in the export")
-                my_storymap_publisher = StoryMapPublisher(
-                    design_data=agol_submission_payload.design_data,
-                    gdh_systems_information=agol_submission_payload.gdh_systems_information,
-                    negotiated_design_item_id=my_webmap_item.itemid,
-                    gdh_project_details=agol_submission_payload.gdh_project_details,
-                    gis=my_arc_gis_helper.get_gis(),
+            else:
+                agol_export_status.status = 1
+                agol_export_status.success_url = submission_status_details.url
+                agol_export_status.messages.append(
+                    "Successfully created Feature Layer on ArcGIS Online"
                 )
-                my_storymap_publisher.publish_storymap()
+            logger.info(
+                "Found {num_tags} tags in Geodesignhub".format(
+                    num_tags=len(agol_submission_payload.tags_data.tags)
+                )
+            )
+            if len(agol_submission_payload.tags_data.tags):
+                try:
+                    my_arc_gis_helper.export_project_tags_to_agol(
+                        tags_data=agol_submission_payload.tags_data,
+                        project_id=agol_submission_payload.design_data.gdh_design_details.project_id,
+                    )
+                except Exception as tags_error:
+                    logger.error(f"Error exporting project tags to AGOL: {tags_error}")
+                    agol_export_status.messages.append(
+                        f"Warning: Failed to export project tags: {tags_error}"
+                    )
 
-    r.set(submission_processing_result_key, json.dumps(asdict(agol_export_status)))
-    r.expire(submission_processing_result_key, time=6000)
+            # Create a web map and publish it
+            if submission_status_details.status:
+                if agol_submission_payload.include_webmap:
+                    logger.info("Webmap included in the export")
+                    my_webmap_item = my_arc_gis_helper.publish_feature_layer_as_webmap(
+                        feature_layer_item=submission_status_details.item,
+                        design_data=agol_submission_payload.design_data,
+                        gdh_systems_information=agol_submission_payload.gdh_systems_information,
+                    )
+                if agol_submission_payload.include_storymap:
+                    logger.info("Storymap included in the export")
+                    my_storymap_publisher = StoryMapPublisher(
+                        design_data=agol_submission_payload.design_data,
+                        gdh_systems_information=agol_submission_payload.gdh_systems_information,
+                        negotiated_design_item_id=my_webmap_item.itemid,
+                        gdh_project_details=agol_submission_payload.gdh_project_details,
+                        gis=my_arc_gis_helper.get_gis(),
+                    )
+                    my_storymap_publisher.publish_storymap()
+
+    except Exception as e:
+        logger.error(f"Unhandled error in publish_design_to_agol: {e}")
+        agol_export_status.status = 0
+        agol_export_status.messages.append(f"Export failed with error: {e}")
+
+    finally:
+        r.set(submission_processing_result_key, json.dumps(asdict(agol_export_status)))
+        r.expire(submission_processing_result_key, time=6000)
 
 
 class ArcGISHelper:

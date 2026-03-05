@@ -312,6 +312,37 @@ def get_gdh_import_processing_result():
     return Response(json.dumps(import_response), status=200, mimetype=MIMETYPE)
 
 
+@app.route("/get_task_debug_info", methods=["GET"])
+def get_task_debug_info():
+    task_id = request.args.get("task_id", "")
+    result = {"task_id": task_id, "rq_job": {}, "export_status": None, "import_logs": []}
+
+    try:
+        job = q.fetch_job(task_id)
+        if job:
+            result["rq_job"] = {
+                "status": str(job.get_status().value),
+                "enqueued_at": str(job.enqueued_at),
+                "started_at": str(job.started_at),
+                "ended_at": str(job.ended_at),
+                "exc_info": job.exc_info or "",
+            }
+    except Exception as e:
+        result["rq_job"] = {"error": str(e)}
+
+    raw = r.get(f"{task_id}_status")
+    if raw:
+        result["export_status"] = json.loads(raw)
+
+    try:
+        logs = r.lrange(f"session_logs:{task_id}", 0, -1)
+        result["import_logs"] = [m.decode("utf-8") for m in logs]
+    except Exception:
+        pass
+
+    return Response(json.dumps(result), status=200, mimetype=MIMETYPE)
+
+
 @app.route("/get_agol_processing_result", methods=["GET"])
 def get_agol_processing_result():
     session_id = request.args.get("session_id", "0")

@@ -37,3 +37,37 @@ All project members can export designs to AGOL.
 ## Adding the Plugin
 
 The plugin can be added to a project through the project administration panels in Geodesignhub.
+
+## Development Setup
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
+
+### Install uv
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### Install dependencies
+
+```bash
+uv sync
+```
+
+### Run the application
+
+```bash
+uv run gunicorn app:app
+```
+
+### Run tests
+
+```bash
+uv run pytest
+```
+
+### Add a dependency
+
+```bash
+uv add <package>
+```

@@ -5,146 +5,215 @@
 {% endblock %}
 {% block body %}
 <div class="container">
-    <!-- Example row of columns -->
     <br>
     <div class="row">
-        <h6>
-            Migration Status
-            <small class="text-body-secondary">Monitor submission to AGOL system</small>
-            <br>
-            
-            <br>
-            <div class="row">
-                <div class="col-md-12">
-                
-                    <button class="btn btn-outline-info d-none" id="get_migration_status" type="button"
-                        onclick="migration_helper.get_import_migration_status()" class="btn btn-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Check status of the export">Query status
-                    </button>
-                    <p>&nbsp;</p>
-                </div>
-            </div>
-            <br>
-            <div class="col-md-12">
-                <div id="intial_state" class="alert {% if op %}alert-info{% else %}alert-warning {% endif %}" role="alert">
-                    {{message}}
-                </div>
-                <div id="latest_update" class="alert" role="alert">                    
-                </div>
-                <h6>Detailed Status</h6>
-
-                <div id="all_updates" class="info" role="alert">                    
-                </div>
-                
-            </div>
-    </div>
-    <div class="row">
         <div class="col-md-12">
-            <small class="text-muted">If you dont see your diagram in a couple of minutes in Geodesignhub, use this id <code>{{ session_id }}</code> and contact <a href="https://community.geodesignhub.com">Geodesignhub Community</a>, also take a screenshot of the status messages above.</small>
+            <h6>
+                Migration Status
+                <small class="text-body-secondary">Monitor submission to Geodesignhub</small>
+            </h6>
+            <div id="initial_state" class="alert {% if op %}alert-info{% else %}alert-warning {% endif %}" role="alert">
+                {{message}}
+            </div>
+            <div id="latest_update" class="alert d-none" role="alert"></div>
+            <div id="detailed_logs" class="d-none mt-2">
+                <h6>Detailed Status</h6>
+                <ul id="all_log_items" class="small"></ul>
+            </div>
         </div>
     </div>
-</div><!-- /container -->
+
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Job Details</strong>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="debugPanel.query()">Refresh</button>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label class="form-label text-muted small mb-1">Task ID</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control font-monospace" id="task_id_input" value="{{ session_id }}">
+                            <button class="btn btn-outline-secondary" type="button" onclick="debugPanel.copyTaskId()">Copy</button>
+                            <button class="btn btn-outline-primary" type="button" onclick="debugPanel.query()">Look up</button>
+                        </div>
+                    </div>
+                    <div id="debug_results" class="d-none mt-3">
+                        <div class="mb-2">
+                            <span class="text-muted small">Job Status: </span>
+                            <span id="rq_status_badge" class="badge"></span>
+                            <span id="rq_timestamps" class="text-muted small ms-2"></span>
+                        </div>
+                        <div id="rq_error_block" class="d-none mb-2">
+                            <label class="text-danger small">Error traceback</label>
+                            <pre id="rq_exc_info" class="border rounded p-2 small bg-light" style="max-height:200px;overflow:auto;white-space:pre-wrap;"></pre>
+                        </div>
+                        <div id="import_logs_block" class="d-none">
+                            <label class="text-muted small">Import logs</label>
+                            <ul id="import_log_items" class="small mb-0"></ul>
+                        </div>
+                        <div id="no_data_block" class="d-none text-muted small">No data found for this task ID.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block footer %}
 <script type="text/javascript">
 
+    const STATUS_BADGE = {
+        queued:   ["bg-secondary", "Queued"],
+        started:  ["bg-primary",   "Running"],
+        finished: ["bg-success",   "Finished"],
+        failed:   ["bg-danger",    "Failed"],
+        deferred: ["bg-warning",   "Deferred"],
+        canceled: ["bg-secondary", "Canceled"],
+    };
 
-    function get_agol_processing_results(migration_status_url) {
-        fetch(migration_status_url)
-            .then((response) => {
-                return response.json();
-            })
-            .then((agol_processing_response) => {
-                // hide the intiial state container                
-                let intial_state_cont = document.getElementById('intial_state');
-                intial_state_cont.classList.add('d-none');
+    const TERMINAL_STATES = new Set(["finished", "failed", "canceled"]);
 
-                let status_ele = document.getElementById("latest_update");
+    let pollTimer = null;
 
-                let detailed_status_ele = document.getElementById("all_updates");
-                detailed_status_ele.classList.remove('d-none');
-                
-                status_ele.innerHTML = "";
-                detailed_status_ele.innerHTML = "";
-                if (agol_processing_response.status == 0) {
-                    
-                    let get_migration_status_cont = document.getElementById('get_migration_status');
-                    get_migration_status_cont.classList.add('d-none');
-                    status_ele.classList.add('alert-info');
-                }
-                else if (agol_processing_response.status == 1) {
-                            
-                    let get_migration_status_cont = document.getElementById('get_migration_status');
-                    get_migration_status_cont.classList.remove('d-none');
+    function renderDebugResults(data) {
+        let resultsDiv = document.getElementById("debug_results");
+        resultsDiv.classList.remove("d-none");
 
-                    status_ele.classList.remove('alert-info');
-                    status_ele.classList.add('alert-warning');
-                    let messages = agol_processing_response.messages || [];
-                    if (messages.length > 0) {
-                        let ul = document.createElement('ul');
-                        messages.forEach((msg) => {
-                            let li = document.createElement('li');
-                            li.textContent = msg;
-                            ul.appendChild(li);
-                        });
-                        status_ele.appendChild(ul);
-                    }
-                }
-                else if (agol_processing_response.status == 2) {
+        // RQ job status
+        let badge      = document.getElementById("rq_status_badge");
+        let timestamps = document.getElementById("rq_timestamps");
+        let rqJob      = data.rq_job || {};
+        let rqStatus   = rqJob.status || "";
 
-                    status_ele.classList.remove('alert-info');
-                    status_ele.classList.remove('alert-warning');
-                    status_ele.classList.add('alert-success');
-                    status_ele.innerHTML = "The data has been successfully imported to Geodesignhub";
+        if (rqJob.error) {
+            badge.className = "badge bg-warning";
+            badge.textContent = "RQ error: " + rqJob.error;
+        } else if (rqStatus) {
+            let [cls, label] = STATUS_BADGE[rqStatus] || ["bg-secondary", rqStatus];
+            badge.className = "badge " + cls;
+            badge.textContent = label;
+            let parts = [];
+            if (rqJob.enqueued_at && rqJob.enqueued_at !== "None") parts.push("Enqueued: " + rqJob.enqueued_at);
+            if (rqJob.started_at  && rqJob.started_at  !== "None") parts.push("Started: "  + rqJob.started_at);
+            if (rqJob.ended_at    && rqJob.ended_at    !== "None") parts.push("Ended: "    + rqJob.ended_at);
+            timestamps.textContent = parts.join(" · ");
+        } else {
+            badge.className = "badge bg-secondary";
+            badge.textContent = "Not found in RQ";
+        }
 
-                    let messages = agol_processing_response.messages || [];
-                    if (messages.length > 0) {
-                        let ul = document.createElement('ul');
-                        messages.slice().reverse().forEach((msg) => {
-                            let li = document.createElement('li');
-                            let codeElement = document.createElement('code');
-                            codeElement.textContent = msg;
-                            li.appendChild(codeElement);
-                            ul.appendChild(li);
-                        });
-                        detailed_status_ele.appendChild(ul);
-                    }
-                }
-            }).catch((error) => {
-                console.log(error)
-                let status_ele = document.getElementById("latest_update");
-                status_ele.classList.add('alert-error');
-                status_ele.innerHTML = "Failed to get results from the bridge";
+        // Error traceback
+        let errBlock = document.getElementById("rq_error_block");
+        let excPre   = document.getElementById("rq_exc_info");
+        if (rqJob.exc_info) {
+            errBlock.classList.remove("d-none");
+            excPre.textContent = rqJob.exc_info;
+        } else {
+            errBlock.classList.add("d-none");
+        }
+
+        // Import logs
+        let logsBlock    = document.getElementById("import_logs_block");
+        let logList      = document.getElementById("import_log_items");
+        let noData       = document.getElementById("no_data_block");
+        let importLogs   = data.import_logs || [];
+        logList.innerHTML = "";
+
+        if (importLogs.length) {
+            logsBlock.classList.remove("d-none");
+            importLogs.slice().reverse().forEach(function(msg) {
+                let li = document.createElement("li");
+                let code = document.createElement("code");
+                code.textContent = msg;
+                li.appendChild(code);
+                logList.appendChild(li);
             });
+            noData.classList.add("d-none");
+        } else {
+            logsBlock.classList.add("d-none");
+        }
+
+        if (!rqStatus && !importLogs.length) {
+            noData.classList.remove("d-none");
+        } else {
+            noData.classList.add("d-none");
+        }
+
+        return rqStatus;
     }
 
-    let MigrationHelperFactory = function () {
+    function updateMainStatus(data) {
+        let importLogs  = data.import_logs || [];
+        let rqStatus    = (data.rq_job || {}).status || "";
+        let initialCont = document.getElementById("initial_state");
+        let latestCont  = document.getElementById("latest_update");
+        let detailedDiv = document.getElementById("detailed_logs");
+        let allLogItems = document.getElementById("all_log_items");
 
-        let session_id = "{{session_id}}";
-        this.get_migration_status =function() {
-            
-            let migration_status_url = window.location.origin + '/get_agol_processing_result?session_id=' + session_id;
-            get_agol_processing_results(migration_status_url)
+        if (!rqStatus) return;
 
+        initialCont.classList.add("d-none");
+        latestCont.classList.remove("d-none");
+        latestCont.innerHTML = "";
+
+        if (rqStatus === "finished") {
+            latestCont.className = "alert alert-success";
+            latestCont.textContent = "Data successfully imported to Geodesignhub.";
+        } else if (rqStatus === "failed") {
+            latestCont.className = "alert alert-danger";
+            latestCont.textContent = "Import failed. See job details below.";
+        } else {
+            latestCont.className = "alert alert-info";
+            latestCont.textContent = "Import in progress…";
         }
-        this.get_import_migration_status =function() {
-            
-            let migration_status_url = window.location.origin + '/get_gdh_import_processing_result?session_id=' + session_id;
-            get_agol_processing_results(migration_status_url)
 
+        // Detailed logs section
+        allLogItems.innerHTML = "";
+        if (importLogs.length) {
+            detailedDiv.classList.remove("d-none");
+            importLogs.slice().reverse().forEach(function(msg) {
+                let li = document.createElement("li");
+                let code = document.createElement("code");
+                code.textContent = msg;
+                li.appendChild(code);
+                allLogItems.appendChild(li);
+            });
         }
     }
-    let migration_helper = new MigrationHelperFactory();
-    setTimeout(
-            function() {
-                
-            // show get_design_shadows_control
-            let get_migration_status_cont = document.getElementById('get_migration_status');
-            get_migration_status_cont.classList.remove('d-none');
-            migration_helper.get_migration_status();            
-    }, 45000);
-    
 
+    let debugPanel = {
+        query: function() {
+            let taskId = document.getElementById("task_id_input").value.trim();
+            if (!taskId) return;
+            let url = window.location.origin + "/get_task_debug_info?task_id=" + encodeURIComponent(taskId);
+            fetch(url)
+                .then(r => r.json())
+                .then(function(data) {
+                    let rqStatus = renderDebugResults(data);
+                    updateMainStatus(data);
+                    if (TERMINAL_STATES.has(rqStatus) && pollTimer) {
+                        clearInterval(pollTimer);
+                        pollTimer = null;
+                    }
+                })
+                .catch(function(err) {
+                    console.error(err);
+                });
+        },
+        copyTaskId: function() {
+            let val = document.getElementById("task_id_input").value;
+            navigator.clipboard.writeText(val).catch(() => {});
+        }
+    };
+
+    // Auto-poll every 10s; first check after 15s
+    setTimeout(function() {
+        debugPanel.query();
+        pollTimer = setInterval(function() { debugPanel.query(); }, 10000);
+    }, 15000);
 
 </script>
 {% endblock %}
