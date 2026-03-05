@@ -1,20 +1,25 @@
-# Use Python 3.10.16 slim image
-FROM python:3.10.16-slim
+# Use Python 3.11 slim image
+FROM python:3.11-slim
 
 # Set the working directory
 WORKDIR /app
 
-# Install system dependencies (including Redis)
+# Install system dependencies (including Redis) and uv
 RUN apt-get update && apt-get install -y \
     build-essential \
     libkrb5-dev \
     gcc \
     redis-server \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+# Copy project definition and install dependencies
+COPY pyproject.toml uv.lock ./
+RUN uv sync --no-dev --frozen
 
 # Copy application code and the start script
 COPY . .
